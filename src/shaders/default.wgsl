@@ -40,10 +40,9 @@ struct LightUniforms {
     specular_intensity: f32,
     specular_shininess: f32,
 };
-@binding(2) @group(0) var<uniform> light_uniforms : LightUniforms;
 
-@binding(3) @group(0) var texture: texture_2d<f32>;
-@binding(4) @group(0) var texture_sampler: sampler;
+@binding(2) @group(0) var texture: texture_2d<f32>;
+@binding(3) @group(0) var texture_sampler: sampler;
 
 @fragment
 fn fs_main(@location(0) v_position: vec4<f32>, @location(1) v_normal: vec4<f32>, @location(2) v_color: vec4<f32>, @location(3) v_uv: vec4<f32>) ->  @location(0) vec4<f32> {
@@ -52,9 +51,6 @@ fn fs_main(@location(0) v_position: vec4<f32>, @location(1) v_normal: vec4<f32>,
     let L:vec3<f32> = normalize(vec3(0.5, 1.0, 0.5));
     let V:vec3<f32> = normalize(frag_uniforms.eye_position.xyz - v_position.xyz);
     let H:vec3<f32> = normalize(L + V);
-    let diffuse:f32 = light_uniforms.diffuse_intensity * max(dot(N, L), 0.0);
-    let specular: f32 = light_uniforms.specular_intensity * pow(max(dot(N, H),0.0), light_uniforms.specular_shininess);
-    let ambient:f32 = light_uniforms.ambient_intensity;
     let texture_color: vec4<f32> = textureSample(texture, texture_sampler, v_uv.xy);
 
     let fog_color: vec3<f32> = vec3(0.2, 0.247, 0.314);
@@ -63,8 +59,8 @@ fn fs_main(@location(0) v_position: vec4<f32>, @location(1) v_normal: vec4<f32>,
     let distance: f32 = length(v_position.xyz - frag_uniforms.eye_position.xyz);
     let fog_factor: f32 = clamp((fog_end - distance) / (fog_end - fog_start), 0.0, 1.0);
 
-    let rgb_effect: vec3<f32> = light_uniforms.color.rgb * texture_color.rgb * v_color.rgb * (ambient + diffuse);
-    let alpha:f32 = light_uniforms.color.a * texture_color.a * v_color.a;
+    let rgb_effect: vec3<f32> = texture_color.rgb * v_color.rgb;
+    let alpha:f32 = texture_color.a * v_color.a;
     let final_color: vec4<f32> = vec4(rgb_effect, alpha);
 
     let blended_color: vec3<f32> = mix(fog_color, final_color.rgb, fog_factor);

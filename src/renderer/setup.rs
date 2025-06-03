@@ -17,6 +17,7 @@ pub fn start_engine(world: World) {
     let render_start_time = std::time::Instant::now();
 
     let mut mouse_locked = true;
+    let mut frame = 0;
 
     event_loop.run(move |event, _, control_flow| {
         match event {
@@ -47,7 +48,12 @@ pub fn start_engine(world: World) {
             Event::RedrawRequested(_) => {
                 let now = std::time::Instant::now();
                 let dt = now - render_start_time;
+
                 renderer.update(dt);
+
+                if frame % 120 == 0 {
+                    renderer.set_objects(&world);
+                }
 
                 match renderer.render() {
                     Ok(_) => {}
@@ -55,6 +61,8 @@ pub fn start_engine(world: World) {
                     Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
                     Err(e) => eprintln!("{:?}", e),
                 }
+
+                frame += 1;
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

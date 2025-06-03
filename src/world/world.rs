@@ -13,6 +13,10 @@ impl World {
     pub fn add_object(&mut self, object: Object) {
         self.objects.push(object);
     }
+
+    pub fn get_objects(&self) -> &Vec<Object> {
+        &self.objects
+    }
 }
 
 pub fn create_world() -> World {

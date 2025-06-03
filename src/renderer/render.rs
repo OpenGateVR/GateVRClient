@@ -1,15 +1,23 @@
 use cgmath::Matrix4;
 use winit::window::Window;
 use std::iter;
-use std::fs;
+use wgpu::BindGroup;
+use rust_embed::RustEmbed;
+use image::GenericImageView;
 
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
+use crate::world::world::World;
+
+#[derive(RustEmbed)]
+#[folder = "client_assets/"]
+struct Assets;
 
 pub struct Renderer {
     pub init: transforms::InitWgpu,
     project_mat: Matrix4<f32>,
     pipeline: wgpu::RenderPipeline,
+
     vertex_buffer: Vec<wgpu::Buffer>,
     uniform_bind_group: Vec<wgpu::BindGroup>,
     num_vertices: Vec<u32>
@@ -19,8 +27,75 @@ impl Renderer {
         let init =  transforms::InitWgpu::init_wgpu(window).await;
 
         let (_, project_mat, _) = transforms::create_view_projection(
-            (0.0, 0.0, 0.0).into(), (0.0, 0.0, 0.0).into(), cgmath::Vector3::unit_y(), 
+            (0.0, 0.0, -10.0).into(), (0.0, 0.0, 0.0).into(), cgmath::Vector3::unit_y(), 
             init.config.width as f32 / init.config.height as f32);
+
+        fn create_buffer(
+            init: &transforms::InitWgpu, 
+            uniform_bind_group_layout: &wgpu::BindGroupLayout, 
+            vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer,
+            texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32
+        ) -> (BindGroup, wgpu::Buffer) {
+            init.queue.write_texture(
+                wgpu::ImageCopyTexture {
+                    texture: &texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &rgba,
+                wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: Some(4 * width),
+                    rows_per_image: Some(height),
+                },
+                texture_size,
+            );
+            
+            let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let sampler = init.device.create_sampler(&wgpu::SamplerDescriptor {
+                address_mode_u: wgpu::AddressMode::ClampToEdge,
+                address_mode_v: wgpu::AddressMode::ClampToEdge,
+                address_mode_w: wgpu::AddressMode::ClampToEdge,
+                mag_filter: wgpu::FilterMode::Nearest,
+                min_filter: wgpu::FilterMode::Nearest,
+                mipmap_filter: wgpu::FilterMode::Nearest,
+                ..Default::default()
+            });
+    
+            let uniform_bind_group = init.device.create_bind_group(&wgpu::BindGroupDescriptor{
+                layout: &uniform_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: vertex_uniform_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: fragment_uniform_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::TextureView(&texture_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::Sampler(&sampler),
+                    },
+                ],
+                label: Some("Uniform Bind Group"),
+            });
+    
+            let max_buffer_size = 1024 * 1024 * 6; // 8MB buffer
+            let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Vertex Buffer"),
+                size: max_buffer_size as u64,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false
+            });
+    
+            return (uniform_bind_group, vertex_buffer)
+        }
 
         let uniform_bind_group_layout: wgpu::BindGroupLayout = init.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             entries: &[
@@ -47,16 +122,6 @@ impl Renderer {
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         multisampled: false,
                         view_dimension: wgpu::TextureViewDimension::D2,
@@ -65,7 +130,7 @@ impl Renderer {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 4,
+                    binding: 3,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
@@ -122,6 +187,42 @@ impl Renderer {
             multiview: None
         });
 
+        let vertex_uniform_buffer: wgpu::Buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Vertex Uniform Buffer"),
+            size: 192,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let fragment_uniform_buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
+            label: Some("Fragment Uniform Buffer"),
+            size: 32,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let texture_data = Assets::get("textures/atlas.png").expect("Failed to load embedded texture");
+        let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
+        println!("loaded blocks/atlas");
+        let rgba = img.to_rgba8();
+        let (width, height) = img.dimensions();
+        let texture_size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
+
+        let world_texture: wgpu::Texture = init.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Texture"),
+            size: texture_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+
         let vertex_buffer = Vec::new();
         let uniform_bind_group = Vec::new();
         let num_vertices = Vec::new();
@@ -146,8 +247,16 @@ impl Renderer {
         }
     }
     pub fn update(&mut self, dt: std::time::Duration) {
-
+        
     }
+
+    pub fn set_objects(&mut self, world: &World) {
+        let objects = world.get_objects();
+        for object in objects {
+
+        }
+    }
+
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         //let output = self.init.surface.get_current_frame()?.output;
         let output = self.init.surface.get_current_texture()?;
