@@ -13,4 +13,8 @@ impl Object {
             vertices: vertices
         }
     }
+
+    pub fn get_vertices(&self) -> &Vec<Vertex> {
+        &self.vertices
+    }
 }

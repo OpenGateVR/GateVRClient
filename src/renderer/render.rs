@@ -1,9 +1,10 @@
-use cgmath::Matrix4;
+use cgmath::{Matrix4, SquareMatrix, Matrix};
 use winit::window::Window;
 use std::iter;
 use wgpu::BindGroup;
 use rust_embed::RustEmbed;
 use image::GenericImageView;
+use bytemuck::{Pod, Zeroable};
 
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
@@ -17,85 +18,104 @@ pub struct Renderer {
     pub init: transforms::InitWgpu,
     project_mat: Matrix4<f32>,
     pipeline: wgpu::RenderPipeline,
+    frame: usize,
 
     vertex_buffer: Vec<wgpu::Buffer>,
     uniform_bind_group: Vec<wgpu::BindGroup>,
-    num_vertices: Vec<u32>
+    num_vertices: Vec<u32>,
+
+    uniform_bind_group_layout: wgpu::BindGroupLayout,
+    vertex_uniform_buffer: wgpu::Buffer,
+    fragment_uniform_buffer: wgpu::Buffer,
+
+    // default texture, for things like fallback worlds
+    world_texture: wgpu::Texture,
+    world_texture_size: wgpu::Extent3d,
+    world_texture_rgba: Vec<u8>,
+    world_texture_width: u32,
+    world_texture_height: u32,
+
+    // the client position and rotation
+    camera_position: (f32, f32, f32),
+    camera_rotation: (f32, f32, f32)
 }
 impl Renderer {
+    fn create_buffer(
+        init: &transforms::InitWgpu, 
+        uniform_bind_group_layout: &wgpu::BindGroupLayout, 
+        vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer,
+        texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32
+    ) -> (BindGroup, wgpu::Buffer) {
+        init.queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &rgba,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * width),
+                rows_per_image: Some(height),
+            },
+            texture_size,
+        );
+        
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = init.device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let uniform_bind_group = init.device.create_bind_group(&wgpu::BindGroupDescriptor{
+            layout: &uniform_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: vertex_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: fragment_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+            label: Some("Uniform Bind Group"),
+        });
+
+        let max_buffer_size = 1024 * 1024 * 6; // 8MB buffer
+        let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Vertex Buffer"),
+            size: max_buffer_size as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false
+        });
+
+        return (uniform_bind_group, vertex_buffer)
+    }
+
     pub async fn new(window: &Window) -> Self {
         let init =  transforms::InitWgpu::init_wgpu(window).await;
 
-        let (_, project_mat, _) = transforms::create_view_projection(
-            (0.0, 0.0, -10.0).into(), (0.0, 0.0, 0.0).into(), cgmath::Vector3::unit_y(), 
-            init.config.width as f32 / init.config.height as f32);
+        let camera_position: (f32, f32, f32) = (-10.0, 4.0, -5.0);
+        let camera_rotation: (f32, f32, f32) = (0.0, 0.0, 0.0);
 
-        fn create_buffer(
-            init: &transforms::InitWgpu, 
-            uniform_bind_group_layout: &wgpu::BindGroupLayout, 
-            vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer,
-            texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32
-        ) -> (BindGroup, wgpu::Buffer) {
-            init.queue.write_texture(
-                wgpu::ImageCopyTexture {
-                    texture: &texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &rgba,
-                wgpu::ImageDataLayout {
-                    offset: 0,
-                    bytes_per_row: Some(4 * width),
-                    rows_per_image: Some(height),
-                },
-                texture_size,
-            );
-            
-            let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-            let sampler = init.device.create_sampler(&wgpu::SamplerDescriptor {
-                address_mode_u: wgpu::AddressMode::ClampToEdge,
-                address_mode_v: wgpu::AddressMode::ClampToEdge,
-                address_mode_w: wgpu::AddressMode::ClampToEdge,
-                mag_filter: wgpu::FilterMode::Nearest,
-                min_filter: wgpu::FilterMode::Nearest,
-                mipmap_filter: wgpu::FilterMode::Nearest,
-                ..Default::default()
-            });
-    
-            let uniform_bind_group = init.device.create_bind_group(&wgpu::BindGroupDescriptor{
-                layout: &uniform_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: vertex_uniform_buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: fragment_uniform_buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::TextureView(&texture_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 3,
-                        resource: wgpu::BindingResource::Sampler(&sampler),
-                    },
-                ],
-                label: Some("Uniform Bind Group"),
-            });
-    
-            let max_buffer_size = 1024 * 1024 * 6; // 8MB buffer
-            let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("Vertex Buffer"),
-                size: max_buffer_size as u64,
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false
-            });
-    
-            return (uniform_bind_group, vertex_buffer)
-        }
+        let (_, project_mat, _) = transforms::create_view_projection(
+            camera_position.into(), camera_rotation.into(), cgmath::Vector3::unit_y(), 
+            init.config.width as f32 / init.config.height as f32);
 
         let uniform_bind_group_layout: wgpu::BindGroupLayout = init.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             entries: &[
@@ -201,20 +221,33 @@ impl Renderer {
             mapped_at_creation: false,
         });
 
+        let model_mat = transforms::create_transforms([
+            0 as f32, 0 as f32, 0 as f32], 
+            [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+        );
+        let normal_mat = (model_mat.invert().unwrap()).transpose();
+
+        let model_ref:&[f32; 16] = model_mat.as_ref();
+        let normal_ref:&[f32; 16] = normal_mat.as_ref();
+        init.queue.write_buffer(&vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
+        init.queue.write_buffer(&vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
+
         let texture_data = Assets::get("textures/atlas.png").expect("Failed to load embedded texture");
         let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
         println!("loaded blocks/atlas");
-        let rgba = img.to_rgba8();
+        let world_texture_rgba = img.to_rgba8().to_vec();
         let (width, height) = img.dimensions();
-        let texture_size = wgpu::Extent3d {
+        let world_texture_size = wgpu::Extent3d {
             width,
             height,
             depth_or_array_layers: 1,
         };
+        let world_texture_width = width;
+        let world_texture_height = height;
 
         let world_texture: wgpu::Texture = init.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Texture"),
-            size: texture_size,
+            size: world_texture_size,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -227,13 +260,30 @@ impl Renderer {
         let uniform_bind_group = Vec::new();
         let num_vertices = Vec::new();
 
+        let frame = 0;
+
         Self {
             init,
             project_mat,
             pipeline,
+            frame,
+
             vertex_buffer,
             uniform_bind_group,
-            num_vertices
+            num_vertices,
+
+            uniform_bind_group_layout,
+            vertex_uniform_buffer,
+            fragment_uniform_buffer,
+
+            world_texture,
+            world_texture_size,
+            world_texture_rgba,
+            world_texture_width,
+            world_texture_height,
+
+            camera_position,
+            camera_rotation
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -247,13 +297,59 @@ impl Renderer {
         }
     }
     pub fn update(&mut self, dt: std::time::Duration) {
+        self.camera_rotation.1 = dt.as_secs_f32();
+        let current_time = std::time::Instant::now();
+
+        let up_direction = cgmath::Vector3::unit_y();
+        let (view_mat, project_mat, _) = transforms::create_view_rotation(
+            self.camera_position.into(), self.camera_rotation.1, self.camera_rotation.0, 
+            up_direction, self.init.config.width as f32 / self.init.config.height as f32);
+
+        let view_project_mat = project_mat * view_mat;
+        let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
         
+        self.init.queue.write_buffer(&self.vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
+        
+        // update lighting position ever so often
+        if self.frame % 300 == 0 {
+            let eye_position:&[f32; 3] = &self.camera_position.into();
+            self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
+        }
+
+        let current_time_updated = std::time::Instant::now();
+        let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
+
+        if true {
+            println!("fps: {}", 1.0 / update_time);
+        }
+
+        self.frame += 1;
     }
 
+    // replace all objects in the world
     pub fn set_objects(&mut self, world: &World) {
         let objects = world.get_objects();
-        for object in objects {
 
+        self.vertex_buffer.clear();
+        self.uniform_bind_group.clear();
+        self.num_vertices.clear();
+
+        for object in objects {
+            let (uniform_bind_group, vertex_buffer) = 
+                Self::create_buffer(
+                    &self.init, &self.uniform_bind_group_layout, 
+                    &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
+                    &self.world_texture, self.world_texture_size, &self.world_texture_rgba, 
+                    self.world_texture_width, self.world_texture_height
+                );
+            
+            self.vertex_buffer.push(vertex_buffer);
+            self.uniform_bind_group.push(uniform_bind_group);
+
+            let vertices = object.get_vertices();
+
+            self.num_vertices.push(vertices.len() as u32);
+            self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
         }
     }
 

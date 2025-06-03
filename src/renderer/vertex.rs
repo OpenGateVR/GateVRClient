@@ -1,8 +1,9 @@
-use std:: {mem};
+use std::mem;
+use bytemuck::{Zeroable, Pod};
 
 // The vertex struct is one singular vertex
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, Zeroable, Pod)]
 pub struct Vertex {
     pub position: [f32; 4],
     pub normal: [f32; 4],

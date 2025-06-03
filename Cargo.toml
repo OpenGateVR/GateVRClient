@@ -12,3 +12,4 @@ pollster = "0.2"
 openxr = "0.19"
 rust-embed = "6.6.0"
 image = "0.24"
+bytemuck = { version = "1.4", features = ["derive"] }
