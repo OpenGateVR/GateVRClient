@@ -1,4 +1,4 @@
 mod render;
-mod vertex;
+pub mod vertex;
 mod transforms;
 pub mod setup;

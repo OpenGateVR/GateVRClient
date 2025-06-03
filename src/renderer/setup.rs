@@ -1,8 +1,8 @@
 use winit::{event::*, event_loop::{ControlFlow, EventLoop}};
-use crate::renderer::render::Renderer;
+use crate::{renderer::render::Renderer, world::world::World};
 
 // this will call the render class
-pub fn start_engine() {
+pub fn start_engine(world: World) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
