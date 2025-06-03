@@ -110,7 +110,7 @@ impl Renderer {
     pub async fn new(window: &Window) -> Self {
         let init =  transforms::InitWgpu::init_wgpu(window).await;
 
-        let camera_position: (f32, f32, f32) = (-10.0, 4.0, -5.0);
+        let camera_position: (f32, f32, f32) = (-10.0, 4.0, 0.0);
         let camera_rotation: (f32, f32, f32) = (0.0, 0.0, 0.0);
 
         let (_, project_mat, _) = transforms::create_view_projection(
@@ -297,7 +297,7 @@ impl Renderer {
         }
     }
     pub fn update(&mut self, dt: std::time::Duration) {
-        self.camera_rotation.1 = dt.as_secs_f32();
+        //self.camera_rotation.1 = dt.as_secs_f32();
         let current_time = std::time::Instant::now();
 
         let up_direction = cgmath::Vector3::unit_y();
