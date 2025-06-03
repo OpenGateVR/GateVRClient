@@ -1,4 +1,4 @@
-mod renderer;
+pub mod renderer;
 
 fn main() {
     
