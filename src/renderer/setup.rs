@@ -16,7 +16,7 @@ pub fn start_engine(world: World) {
     let mut renderer = pollster::block_on(Renderer::new(&window));    
     let render_start_time = std::time::Instant::now();
 
-    let mut mouse_locked = true;
+    //let mut mouse_locked = true;
     let mut frame = 0;
 
     event_loop.run(move |event, _, control_flow| {
@@ -28,7 +28,7 @@ pub fn start_engine(world: World) {
                 match event {
                     WindowEvent::Focused(focused) => {
                         if !focused {
-                            mouse_locked = false;
+                            //mouse_locked = false;
                             if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
                                 eprintln!("Failed to unlock the cursor: {:?}", err);
                             }

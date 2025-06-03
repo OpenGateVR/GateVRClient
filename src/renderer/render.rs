@@ -4,7 +4,6 @@ use std::iter;
 use wgpu::BindGroup;
 use rust_embed::RustEmbed;
 use image::GenericImageView;
-use bytemuck::{Pod, Zeroable};
 
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
@@ -296,7 +295,7 @@ impl Renderer {
             self.project_mat = transforms::create_projection(new_size.width as f32 / new_size.height as f32);
         }
     }
-    pub fn update(&mut self, dt: std::time::Duration) {
+    pub fn update(&mut self, _dt: std::time::Duration) {
         //self.camera_rotation.1 = dt.as_secs_f32();
         let current_time = std::time::Instant::now();
 

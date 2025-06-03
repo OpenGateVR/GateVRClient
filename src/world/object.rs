@@ -14,6 +14,13 @@ impl Object {
         }
     }
 
+    pub fn set_position(&mut self, position: (f64, f64, f64)) {
+        self.position = position;
+    }
+    pub fn set_size(&mut self, size: (f32, f32, f32)) {
+        self.size = size;
+    }
+
     pub fn get_vertices(&self) -> &Vec<Vertex> {
         &self.vertices
     }
