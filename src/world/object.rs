@@ -1,5 +1,6 @@
 use crate::renderer::vertex::Vertex;
 
+// this is a game object, and will be used to render the vertices
 pub struct Object {
     position: (f64, f64, f64),
     size: (f32, f32, f32),
