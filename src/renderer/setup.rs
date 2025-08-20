@@ -1,5 +1,3 @@
-use std::vec;
-
 use winit::{event::*, event_loop::{ControlFlow, EventLoop}};
 use crate::{renderer::render::Renderer, world::world::World};
 
