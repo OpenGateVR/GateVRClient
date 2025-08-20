@@ -24,18 +24,10 @@ impl InitWgpu {
     pub async fn init_wgpu(window: &Window) -> Self {
         let size = window.inner_size();
 
-        let instance;
-        if cfg!(target_os = "windows") {
-            instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-                backends: wgpu::Backends::DX12,
-                dx12_shader_compiler: Default::default(),
-            });
-        } else {
-            instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-                backends: wgpu::Backends::VULKAN,
-                dx12_shader_compiler: Default::default(),
-            });
-        }
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::all(),
+            dx12_shader_compiler: Default::default(),
+        });
 
         let surface = unsafe { instance.create_surface(window) }.unwrap();
         let adapter = instance
@@ -45,7 +37,7 @@ impl InitWgpu {
                 force_fallback_adapter:false,
             })
             .await
-            .unwrap();
+            .expect("No GPU adapter found that can present to this surface!");
 
         let (device, queue) = adapter
             .request_device(
