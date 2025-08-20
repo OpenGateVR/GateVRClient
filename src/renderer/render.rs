@@ -318,7 +318,7 @@ impl Renderer {
         let current_time_updated = std::time::Instant::now();
         let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
 
-        if true {
+        if false {
             println!("fps: {}", 1.0 / update_time);
         }
 

@@ -42,6 +42,51 @@ pub fn start_engine(world: World) {
                     WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                         renderer.resize(**new_inner_size);
                     }
+                    WindowEvent::KeyboardInput {
+                        input: KeyboardInput {
+                                state: key_state,
+                                virtual_keycode: Some(keycode),
+                                ..
+                            },
+                        ..
+                    } => {
+                        match key_state {
+                            ElementState::Pressed => {
+                                match &keycode {
+                                    &VirtualKeyCode::Escape | &VirtualKeyCode::LWin | &VirtualKeyCode::RWin => {
+                                        if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
+                                            eprintln!("Failed to unlock the cursor: {:?}", err);
+                                        }
+                                        window.set_cursor_visible(true);
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            ElementState::Released => {
+                                match &keycode {
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                    WindowEvent::MouseInput { state, button, .. } => {
+                        match state {
+                            ElementState::Pressed => {
+                                match button {
+                                    MouseButton::Left => {
+                                        if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
+                                            eprintln!("Failed to lock the cursor: {:?}", err);
+                                        }
+                                        window.set_cursor_visible(false);
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            ElementState::Released => {
+                                return
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
