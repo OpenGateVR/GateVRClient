@@ -18,7 +18,7 @@ pub fn start_engine(world: World) {
 
     let mut mouse_locked = false;
 
-    let mut keys = [false; 4]; // keys: W A S D
+    let mut keys = [false; 5]; // keys: W A S D
     let mut mouse = [0.0; 2]; // mouse movement x and y
 
     event_loop.run(move |event, _, control_flow| {
@@ -70,6 +70,11 @@ pub fn start_engine(world: World) {
                         match key_state {
                             ElementState::Pressed => {
                                 match &keycode {
+                                    &VirtualKeyCode::W => { keys[0] = true }
+                                    &VirtualKeyCode::A => { keys[1] = true }
+                                    &VirtualKeyCode::S => { keys[2] = true }
+                                    &VirtualKeyCode::D => { keys[3] = true }
+                                    &VirtualKeyCode::Space => { keys[4] = true }
                                     &VirtualKeyCode::Escape | &VirtualKeyCode::LWin | &VirtualKeyCode::RWin => {
                                         mouse_locked = false;
                                         if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
@@ -82,6 +87,11 @@ pub fn start_engine(world: World) {
                             }
                             ElementState::Released => {
                                 match &keycode {
+                                    &VirtualKeyCode::W => { keys[0] = false }
+                                    &VirtualKeyCode::A => { keys[1] = false }
+                                    &VirtualKeyCode::S => { keys[2] = false }
+                                    &VirtualKeyCode::D => { keys[3] = false }
+                                    &VirtualKeyCode::Space => { keys[4] = false }
                                     _ => {}
                                 }
                             }
