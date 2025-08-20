@@ -43,7 +43,7 @@ impl Renderer {
         init: &transforms::InitWgpu, 
         uniform_bind_group_layout: &wgpu::BindGroupLayout, 
         vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer,
-        texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32
+        texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32, vertex_num: usize
     ) -> (BindGroup, wgpu::Buffer) {
         init.queue.write_texture(
             wgpu::ImageCopyTexture {
@@ -95,7 +95,7 @@ impl Renderer {
             label: Some("Uniform Bind Group"),
         });
 
-        let max_buffer_size = 1024 * 1024 * 6; // 8MB buffer
+        let max_buffer_size = size_of::<Vertex>() * vertex_num; // 8MB buffer
         let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
             size: max_buffer_size as u64,
@@ -334,18 +334,18 @@ impl Renderer {
         self.num_vertices.clear();
 
         for object in objects {
+            let vertices = object.get_vertices();
+
             let (uniform_bind_group, vertex_buffer) = 
                 Self::create_buffer(
                     &self.init, &self.uniform_bind_group_layout, 
                     &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
                     &self.world_texture, self.world_texture_size, &self.world_texture_rgba, 
-                    self.world_texture_width, self.world_texture_height
+                    self.world_texture_width, self.world_texture_height, vertices.len()
                 );
             
             self.vertex_buffer.push(vertex_buffer);
             self.uniform_bind_group.push(uniform_bind_group);
-
-            let vertices = object.get_vertices();
 
             self.num_vertices.push(vertices.len() as u32);
             self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
