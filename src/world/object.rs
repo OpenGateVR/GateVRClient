@@ -9,6 +9,7 @@ pub enum ObjectType {
 }
 
 // this is a game object, and will be used to render the vertices
+#[derive(Clone)]
 pub struct Object {
     object_type: ObjectType,
     position: (f64, f64, f64),

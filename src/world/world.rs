@@ -23,6 +23,9 @@ impl World {
     pub fn get_objects(&self) -> &Vec<Object> {
         &self.objects
     }
+    pub fn get_cameras(&self) -> &Vec<Object> {
+        &self.cameras
+    }
 }
 
 pub fn create_world() -> World {

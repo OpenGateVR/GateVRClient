@@ -7,6 +7,7 @@ use image::GenericImageView;
 
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
+use crate::world::object::Object;
 use crate::world::world::World;
 
 #[derive(RustEmbed)]
@@ -36,7 +37,10 @@ pub struct Renderer {
 
     // the client position and rotation
     camera_position: (f32, f32, f32),
-    camera_rotation: (f32, f32, f32)
+    camera_rotation: (f32, f32, f32),
+
+    objects: Vec<Object>,
+    cameras: Vec<Object>
 }
 impl Renderer {
     fn create_buffer(
@@ -282,7 +286,10 @@ impl Renderer {
             world_texture_height,
 
             camera_position,
-            camera_rotation
+            camera_rotation,
+
+            objects: Vec::new(),
+            cameras: Vec::new()
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -327,13 +334,14 @@ impl Renderer {
 
     // replace all objects in the world
     pub fn set_objects(&mut self, world: &World) {
-        let objects = world.get_objects();
+        let objects = world.get_objects().clone();
+        let cameras = world.get_cameras().clone();
 
         self.vertex_buffer.clear();
         self.uniform_bind_group.clear();
         self.num_vertices.clear();
 
-        for object in objects {
+        for object in &objects {
             let vertices = object.get_vertices();
 
             let (uniform_bind_group, vertex_buffer) = 
@@ -350,6 +358,9 @@ impl Renderer {
             self.num_vertices.push(vertices.len() as u32);
             self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
         }
+
+        self.objects = objects;
+        self.cameras = cameras;
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
