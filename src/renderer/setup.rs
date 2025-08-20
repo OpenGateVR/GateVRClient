@@ -1,3 +1,5 @@
+use std::vec;
+
 use winit::{event::*, event_loop::{ControlFlow, EventLoop}};
 use crate::{renderer::render::Renderer, world::world::World};
 
@@ -7,11 +9,6 @@ pub fn start_engine(world: World) {
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title("GateVR");
-    
-    if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
-        eprintln!("Failed to lock the cursor: {:?}", err);
-    }
-    window.set_cursor_visible(false);
 
     let mut renderer = pollster::block_on(Renderer::new(&window));    
     let render_start_time = std::time::Instant::now();
@@ -19,7 +16,14 @@ pub fn start_engine(world: World) {
     //let mut mouse_locked = true;
     let mut frame = 0;
 
+    let mut mouse_locked = false;
+
+    let mut keys = [false; 4]; // keys: W A S D
+    let mut mouse = [0.0; 2]; // mouse movement x and y
+
     event_loop.run(move |event, _, control_flow| {
+        mouse[0] -= mouse[0] * 0.1;
+        mouse[1] -= mouse[1] * 0.1;
         match event {
             Event::WindowEvent {
                 ref event,
@@ -28,7 +32,7 @@ pub fn start_engine(world: World) {
                 match event {
                     WindowEvent::Focused(focused) => {
                         if !focused {
-                            //mouse_locked = false;
+                            mouse_locked = false;
                             if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
                                 eprintln!("Failed to unlock the cursor: {:?}", err);
                             }
@@ -42,6 +46,19 @@ pub fn start_engine(world: World) {
                     WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                         renderer.resize(**new_inner_size);
                     }
+                    WindowEvent::CursorMoved { position, .. } => {
+                        if mouse_locked {
+                            let window_size = window.inner_size();
+                            let center_x = window_size.width as f64 / 2.0;
+                            let center_y = window_size.height as f64 / 2.0;
+                            mouse[0] = center_x - position.x;
+                            mouse[1] = center_y - position.y;
+                            window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
+                        } else {
+                            mouse[0] = 0.0;
+                            mouse[1] = 0.0;
+                        }
+                    }
                     WindowEvent::KeyboardInput {
                         input: KeyboardInput {
                                 state: key_state,
@@ -54,6 +71,7 @@ pub fn start_engine(world: World) {
                             ElementState::Pressed => {
                                 match &keycode {
                                     &VirtualKeyCode::Escape | &VirtualKeyCode::LWin | &VirtualKeyCode::RWin => {
+                                        mouse_locked = false;
                                         if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
                                             eprintln!("Failed to unlock the cursor: {:?}", err);
                                         }
@@ -74,6 +92,7 @@ pub fn start_engine(world: World) {
                             ElementState::Pressed => {
                                 match button {
                                     MouseButton::Left => {
+                                        mouse_locked = true;
                                         if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
                                             eprintln!("Failed to lock the cursor: {:?}", err);
                                         }
@@ -94,7 +113,7 @@ pub fn start_engine(world: World) {
                 let now = std::time::Instant::now();
                 let dt = now - render_start_time;
 
-                renderer.update(dt);
+                renderer.update(dt, keys, mouse);
 
                 if frame % 120 == 0 {
                     renderer.set_objects(&world);

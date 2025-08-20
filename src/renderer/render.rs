@@ -19,6 +19,7 @@ pub struct Renderer {
     project_mat: Matrix4<f32>,
     pipeline: wgpu::RenderPipeline,
     frame: usize,
+    previous_frame_time: std::time::Instant,
 
     vertex_buffer: Vec<wgpu::Buffer>,
     uniform_bind_group: Vec<wgpu::BindGroup>,
@@ -264,12 +265,14 @@ impl Renderer {
         let num_vertices = Vec::new();
 
         let frame = 0;
+        let previous_frame_time = std::time::Instant::now();
 
         Self {
             init,
             project_mat,
             pipeline,
             frame,
+            previous_frame_time,
 
             vertex_buffer,
             uniform_bind_group,
@@ -302,9 +305,15 @@ impl Renderer {
             self.project_mat = transforms::create_projection(new_size.width as f32 / new_size.height as f32);
         }
     }
-    pub fn update(&mut self, _dt: std::time::Duration) {
+    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 4], mouse: [f64; 2]) {
         //self.camera_rotation.1 = dt.as_secs_f32();
         let current_time = std::time::Instant::now();
+        let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
+        self.previous_frame_time = current_time;
+
+        self.camera_rotation.1 -= mouse[0] as f32 * (frame_time * 0.1);
+        self.camera_rotation.0 += mouse[1] as f32 * (frame_time * 0.1);
+        self.camera_rotation.0 = self.camera_rotation.0.clamp(-std::f32::consts::FRAC_PI_2 / 1.01, std::f32::consts::FRAC_PI_2 / 1.01);
 
         let up_direction = cgmath::Vector3::unit_y();
         let (view_mat, project_mat, _) = transforms::create_view_rotation(
