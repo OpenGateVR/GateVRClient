@@ -1,7 +1,7 @@
 use rust_embed::RustEmbed;
 use fbx::{File, Node};
 use fbx::Property;
-use std::io::{self, BufReader, Cursor};
+use std::io::{BufReader, Cursor};
 
 #[derive(RustEmbed)]
 #[folder = "client_assets/"]

@@ -3,7 +3,7 @@ pub mod world;
 
 use world::object::Object;
 
-use crate::world::{object::ObjectType, objects::FbxParser::parse};
+use crate::world::{object::ObjectType, objects::fbx_parser::parse};
 
 fn main() {
     let mut world = world::world::create_world();

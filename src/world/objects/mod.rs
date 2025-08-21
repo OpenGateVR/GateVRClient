@@ -1,2 +1,2 @@
 pub mod cube;
-pub mod FbxParser;
+pub mod fbx_parser;
