@@ -109,7 +109,7 @@ fn traverse_nodes(node: &Node) -> (Vec<f64>, Vec<i32>, Vec<f64>, Vec<i32>) {
     (vertices, indices, uv, uv_indices)
 }
 
-pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64)) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
+pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rotation: (f64, f64, f64)) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
     let mut reader = BufReader::new(cursor);
@@ -173,6 +173,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64)) -> (
         ];
 
         v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
+        v = rotate_x(v, rotation.0 * 0.0174532925);
+        v = rotate_y(v, rotation.1 * 0.0174532925);
+        v = rotate_z(v, rotation.2 * 0.0174532925);
 
         // translate
         v[0] += position.0;
@@ -194,6 +197,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64)) -> (
         ];
 
         v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
+        v = rotate_x(v, rotation.0 * 0.0174532925);
+        v = rotate_y(v, rotation.1 * 0.0174532925);
+        v = rotate_z(v, rotation.2 * 0.0174532925);
 
         // translate
         v[0] += position.0;
@@ -215,6 +221,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64)) -> (
         ];
 
         v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
+        v = rotate_x(v, rotation.0 * 0.0174532925);
+        v = rotate_y(v, rotation.1 * 0.0174532925);
+        v = rotate_z(v, rotation.2 * 0.0174532925);
 
         // translate
         v[0] += position.0;

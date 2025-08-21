@@ -343,7 +343,8 @@ impl Renderer {
         textures.insert("textures/displacement.png".to_string(), TextureObject::create("textures/displacement.png", &init));
         textures.insert("textures/niko.png".to_string(), TextureObject::create("textures/niko.png", &init));
         textures.insert("textures/wall.jpg".to_string(), TextureObject::create("textures/wall.jpg", &init));
-        textures.insert("textures/skybox.png".to_string(), TextureObject::create("textures/skybox.png", &init));
+        textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
+        textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
 
         let vertex_buffer = Vec::new();
         let uniform_bind_group = Vec::new();

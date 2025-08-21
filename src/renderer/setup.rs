@@ -11,9 +11,6 @@ pub fn start_engine(world: World) {
     let mut renderer = pollster::block_on(Renderer::new(&window));    
     let render_start_time = std::time::Instant::now();
 
-    //let mut mouse_locked = true;
-    let mut frame = 0;
-
     let mut mouse_locked = false;
 
     let mut keys = [false; 5]; // keys: W A S D
@@ -135,8 +132,6 @@ pub fn start_engine(world: World) {
                     Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
                     Err(e) => eprintln!("{:?}", e),
                 }
-
-                frame += 1;
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

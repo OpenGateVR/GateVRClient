@@ -8,16 +8,16 @@ use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse}};
 fn main() {
     let mut world = world::world::create_world();
 
-    let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0));
+    let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0), (0.0, 0.0, 0.0));
     let mut skybox_object = Object::create(
         ObjectType::Skybox,
         renderer::vertex::create_vertices(skybox.0, skybox.2, skybox.3, skybox.1)
     );
-    skybox_object.set_texture("textures/skybox.png");
+    skybox_object.set_texture("textures/skybox_2.png");
     skybox_object.set_movable(true);
     world.add_object(skybox_object);
 
-    let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0));
+    let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
     let mut table_object = Object::create(
         ObjectType::Mesh,
         renderer::vertex::create_vertices(table.0, table.2, table.3, table.1)
@@ -30,7 +30,7 @@ fn main() {
         Vec::new()
     ));
 
-    let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0));
+    let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0), (0.0, 0.0, 0.0));
     let mut ground_object = Object::create(
         ObjectType::Mesh,
         renderer::vertex::create_vertices(ground.0, ground.2, ground.3, ground.1)
@@ -38,7 +38,7 @@ fn main() {
     ground_object.set_displacement("textures/ground_displacement.png");
     world.add_object(ground_object);
 
-    let niko = parse("models/niko.fbx", (0.0, 2.0, -2.0), (2.0, 2.0, 2.0));
+    let niko = parse("models/niko.fbx", (0.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
     let mut niko_object = Object::create(
         ObjectType::Mesh,
         renderer::vertex::create_vertices(niko.0, niko.2, niko.3, niko.1)
