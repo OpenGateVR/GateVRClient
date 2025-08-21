@@ -3,10 +3,12 @@ pub mod world;
 
 use world::object::Object;
 
-use crate::world::object::ObjectType;
+use crate::world::{object::ObjectType, objects::FbxParser::parse};
 
 fn main() {
     let mut world = world::world::create_world();
+
+    let table = parse("models/table.fbx");
 
     world.add_object(Object::create(
         ObjectType::Camera,

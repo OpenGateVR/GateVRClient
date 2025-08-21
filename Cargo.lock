@@ -9,6 +9,7 @@ dependencies = [
  "bytemuck",
  "cgmath",
  "env_logger",
+ "fbx",
  "image",
  "openxr",
  "pollster",
@@ -506,6 +507,16 @@ dependencies = [
  "rayon-core",
  "smallvec",
  "zune-inflate",
+]
+
+[[package]]
+name = "fbx"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "490bc665e35e76ee68589eb61eae457f8e8e773ca3d578e6e58f942a4847c67a"
+dependencies = [
+ "flate2",
+ "thiserror",
 ]
 
 [[package]]
