@@ -15,6 +15,7 @@ pub struct Object {
     object_type: ObjectType,
     position: (f64, f64, f64),
     size: (f32, f32, f32),
+    rotation: (f32, f32, f32),
     vertices: Vec<Vertex>,
     texture: String,
     displacement_texture: String,
@@ -26,6 +27,7 @@ impl Object {
             object_type: object_type,
             position: (0.0, 0.0, 0.0),
             size: (0.0, 0.0, 0.0),
+            rotation: (0.0, 0.0, 0.0),
             vertices: vertices,
             texture: "textures/ground.jpg".to_string(),
             displacement_texture: "None".to_string(),
@@ -38,6 +40,9 @@ impl Object {
     }
     pub fn set_size(&mut self, size: (f32, f32, f32)) {
         self.size = size;
+    }
+    pub fn set_rotation(&mut self, rotation: (f32, f32, f32)) {
+        self.rotation = rotation;
     }
     pub fn set_texture(&mut self, texture: &str) {
         self.texture = texture.to_string()
@@ -63,5 +68,11 @@ impl Object {
     }
     pub fn get_movable(&self) -> bool {
         self.movable
+    }
+    pub fn get_position(&self) -> (f64, f64, f64) {
+        self.position
+    }
+    pub fn get_rotation(&self) -> (f32, f32, f32) {
+        self.rotation
     }
 }

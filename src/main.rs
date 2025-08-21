@@ -25,10 +25,13 @@ fn main() {
     table_object.set_texture("textures/table.png");
     world.add_object(table_object);
 
-    world.add_object(Object::create(
+    let mut camera = Object::create(
         ObjectType::Camera,
         Vec::new()
-    ));
+    );
+    camera.set_position((-3.0, 4.0, 3.0));
+    camera.set_rotation((0.0, -45.0, 0.0));
+    world.add_object(camera);
 
     let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0), (0.0, 0.0, 0.0));
     let mut ground_object = Object::create(
@@ -69,6 +72,14 @@ fn main() {
     );
     wall_3_object.set_texture("textures/wall.jpg");
     world.add_object(wall_3_object);
+
+    let wall_4 = cube::create_cube((5.0, 2.5, 0.0), (0.5, 0.5, 5.0));
+    let mut wall_4_object = Object::create(
+        ObjectType::Cube,
+        renderer::vertex::create_vertices(wall_4.0, wall_4.2, wall_4.3, wall_4.1)
+    );
+    wall_4_object.set_texture("textures/wall.jpg");
+    world.add_object(wall_4_object);
 
     renderer::setup::start_engine(world);
 }

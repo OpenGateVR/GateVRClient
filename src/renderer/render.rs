@@ -82,7 +82,8 @@ pub struct Renderer {
     camera_acceleration_walking: (f32, f32, f32),
 
     objects: Vec<Object>,
-    cameras: Vec<Object>
+    cameras: Vec<Object>,
+    current_camera: usize
 }
 impl Renderer {
     fn create_buffer_displacement(
@@ -377,7 +378,8 @@ impl Renderer {
             camera_acceleration_walking: (0.0, 0.0, 0.0),
 
             objects: Vec::new(),
-            cameras: Vec::new()
+            cameras: Vec::new(),
+            current_camera: 0
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -547,6 +549,14 @@ impl Renderer {
 
         self.objects = objects;
         self.cameras = cameras;
+
+        if self.cameras.len() > self.current_camera {
+            let object_position = self.cameras[self.current_camera].get_position();
+            self.camera_position.0 = object_position.0 as f32;
+            self.camera_position.1 = object_position.1 as f32;
+            self.camera_position.2 = object_position.2 as f32;
+            self.camera_rotation = self.cameras[self.current_camera].get_rotation();
+        }
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
