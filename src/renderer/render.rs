@@ -6,6 +6,7 @@ use rust_embed::RustEmbed;
 use image::GenericImageView;
 use std::collections::HashMap;
 
+use crate::interract::raycast::raycast_grab;
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
 use crate::world::object::{Object, ObjectType};
@@ -457,6 +458,24 @@ impl Renderer {
                     self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
                 }
             }
+
+            let grabbable_object_index = raycast_grab(&mut self.objects, self.camera_position, forward, 5);
+            if grabbable_object_index > 0 {
+                let y_rotation = self.objects[grabbable_object_index].get_rotation().1;
+                self.objects[grabbable_object_index].set_rotation_y(y_rotation + 0.1);
+                let model_mat = transforms::create_transforms(
+                    [0.0, 0.0, 0.0], 
+                    [0.0, y_rotation + 0.1, 0.0], [1.0, 1.0, 1.0]
+                );
+                let normal_mat = (model_mat.invert().unwrap()).transpose();
+
+                let model_ref:&[f32; 16] = model_mat.as_ref();
+                let normal_ref:&[f32; 16] = normal_mat.as_ref();
+                let eye_position:&[f32; 3] = &self.camera_position.into();
+                self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
+                self.init.queue.write_buffer(&self.model_uniform_buffers[grabbable_object_index], 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&self.model_uniform_buffers[grabbable_object_index], 64, bytemuck::cast_slice(normal_ref));
+            }
         }
 
         let up_direction = cgmath::Vector3::unit_y();
@@ -472,7 +491,7 @@ impl Renderer {
         let current_time_updated = std::time::Instant::now();
         let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
 
-        if true {
+        if false {
             println!("fps: {}", 1.0 / update_time);
         }
 

@@ -6,7 +6,8 @@ pub enum ObjectType {
     Camera,
     Sphere,
     Mesh,
-    Skybox
+    Skybox,
+    Grabbable
 }
 
 // this is a game object, and will be used to render the vertices
@@ -43,6 +44,9 @@ impl Object {
     }
     pub fn set_rotation(&mut self, rotation: (f32, f32, f32)) {
         self.rotation = rotation;
+    }
+    pub fn set_rotation_y(&mut self, rotation: f32) {
+        self.rotation.1 = rotation;
     }
     pub fn set_texture(&mut self, texture: &str) {
         self.texture = texture.to_string()

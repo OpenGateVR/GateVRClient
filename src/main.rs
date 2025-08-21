@@ -1,5 +1,6 @@
 pub mod renderer;
 pub mod world;
+pub mod interract;
 
 use world::object::Object;
 
@@ -80,6 +81,15 @@ fn main() {
     );
     wall_4_object.set_texture("textures/wall.jpg");
     world.add_object(wall_4_object);
+
+    let tablet = parse("models/niko.fbx", (0.0, 3.0, 0.0), (0.5, 0.5, 0.5), (0.0, 0.0, 0.0));
+    let mut tablet_object = Object::create(
+        ObjectType::Grabbable,
+        renderer::vertex::create_vertices(tablet.0, tablet.2, tablet.3, tablet.1)
+    );
+    tablet_object.set_texture("textures/niko.png");
+    tablet_object.set_position((0.0, 3.0, 0.0));
+    world.add_object(tablet_object);
 
     renderer::setup::start_engine(world);
 }
