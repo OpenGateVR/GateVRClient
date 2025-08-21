@@ -105,6 +105,10 @@ pub fn start_engine(world: World) {
                                             eprintln!("Failed to lock the cursor: {:?}", err);
                                         }
                                         window.set_cursor_visible(false);
+                                        let window_size = window.inner_size();
+                                        let center_x = window_size.width as f64 / 2.0;
+                                        let center_y = window_size.height as f64 / 2.0;
+                                        window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
                                     }
                                     _ => {}
                                 }

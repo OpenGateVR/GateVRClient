@@ -371,11 +371,15 @@ impl Renderer {
             self.project_mat = transforms::create_projection(new_size.width as f32 / new_size.height as f32);
         }
     }
-    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 5], mouse: [f64; 2]) {
+    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 5], mut mouse: [f64; 2]) {
         //self.camera_rotation.1 = dt.as_secs_f32();
         let current_time = std::time::Instant::now();
-        let frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
+        let mut frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
         self.previous_frame_time = current_time;
+
+        if frame_time > 5.0 {
+            frame_time = 5.0
+        }
 
         self.camera_rotation.1 -= mouse[0] as f32 * (frame_time * 0.1);
         self.camera_rotation.0 += mouse[1] as f32 * (frame_time * 0.1);
