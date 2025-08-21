@@ -14,6 +14,7 @@ struct Mesh {
     indices: Vec<i32>,
     uv: Vec<f64>,
     uv_indices: Vec<i32>,
+    normals: Vec<f64>,
     id: i64
 }
 
@@ -99,6 +100,7 @@ fn traverse_nodes(node: &Node) -> Vec<Mesh> {
         let mut indices = Vec::new();
         let mut uv = Vec::new();
         let mut uv_indices = Vec::new();
+        let mut normals: Vec<f64> = Vec::new();
 
         for child in &node.children {
             match child.name.as_str() {
@@ -137,9 +139,25 @@ fn traverse_nodes(node: &Node) -> Vec<Mesh> {
                         }
                     }
                 }
+                "LayerElementNormal" => {
+                    for sub in &child.children {
+                        match sub.name.as_str() {
+                            "Normals" => {
+                                for prop in &sub.properties {
+                                    if let Property::F64Array(arr) = prop {
+                                        normals.extend(arr);
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
                 _ => {}
             }
         }
+
+        //println!("{:?}", normals);
 
         let id: i64;
         if let Some(id_found) = get_id(node) {
@@ -153,6 +171,7 @@ fn traverse_nodes(node: &Node) -> Vec<Mesh> {
             indices,
             uv,
             uv_indices,
+            normals,
             id
         });
     }
@@ -306,8 +325,6 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                     current_uvs.clear();
                 }
             }
-
-            //println!("{:?}", triangles);
 
             for tri in triangles {
                 let mut v = [

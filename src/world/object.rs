@@ -7,7 +7,8 @@ pub enum ObjectType {
     Sphere,
     Mesh,
     Skybox,
-    Grabbable
+    Grabbable,
+    TabletMenu
 }
 
 // this is a game object, and will be used to render the vertices

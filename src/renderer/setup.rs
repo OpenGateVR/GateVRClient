@@ -13,7 +13,7 @@ pub fn start_engine(world: World) {
 
     let mut mouse_locked = false;
 
-    let mut keys = [false; 5]; // keys: W A S D
+    let mut keys = [false; 6]; // keys: W A S D
     let mut mouse = [0.0; 2]; // mouse movement x and y
     
     renderer.set_objects(&world);
@@ -73,6 +73,7 @@ pub fn start_engine(world: World) {
                                     &VirtualKeyCode::D => { keys[3] = true }
                                     &VirtualKeyCode::Space => { keys[4] = true }
                                     &VirtualKeyCode::Escape | &VirtualKeyCode::LWin | &VirtualKeyCode::RWin => {
+                                        keys[5] = true;
                                         mouse_locked = false;
                                         if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
                                             eprintln!("Failed to unlock the cursor: {:?}", err);
@@ -89,6 +90,7 @@ pub fn start_engine(world: World) {
                                     &VirtualKeyCode::S => { keys[2] = false }
                                     &VirtualKeyCode::D => { keys[3] = false }
                                     &VirtualKeyCode::Space => { keys[4] = false }
+                                    &VirtualKeyCode::Escape => { keys[5] = false }
                                     _ => {}
                                 }
                             }

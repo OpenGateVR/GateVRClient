@@ -4,7 +4,7 @@ pub mod interract;
 
 use world::object::Object;
 
-use crate::world::{object::ObjectType, objects::fbx_parser::parse};
+use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse}};
 
 fn main() {
     let mut world = world::world::create_world();
@@ -26,13 +26,13 @@ fn main() {
     camera.set_rotation((0.0, -45.0, 0.0));
     world.add_object(camera);
 
-    /*let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
+    let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
     let mut table_object = Object::create(
         ObjectType::Mesh,
         renderer::vertex::create_vertices(table.0, table.2, table.3, table.1)
     );
     table_object.set_texture("textures/table.png");
-    world.add_object(table_object);*/
+    world.add_object(table_object);
 
     let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0), (0.0, 0.0, 0.0));
     let mut ground_object = Object::create(
@@ -50,46 +50,6 @@ fn main() {
     niko_object.set_texture("textures/niko.png");
     world.add_object(niko_object);
 
-    /*let wall_1 = cube::create_cube((0.0, 2.5, 5.0), (5.0, 0.5, 0.5));
-    let mut wall_1_object = Object::create(
-        ObjectType::Cube,
-        renderer::vertex::create_vertices(wall_1.0, wall_1.2, wall_1.3, wall_1.1)
-    );
-    wall_1_object.set_texture("textures/wall.jpg");
-    world.add_object(wall_1_object);
-
-    let wall_2 = cube::create_cube((0.0, 2.5, -5.0), (5.0, 0.5, 0.5));
-    let mut wall_2_object = Object::create(
-        ObjectType::Cube,
-        renderer::vertex::create_vertices(wall_2.0, wall_2.2, wall_2.3, wall_2.1)
-    );
-    wall_2_object.set_texture("textures/wall.jpg");
-    world.add_object(wall_2_object);
-
-    let wall_3 = cube::create_cube((-5.0, 2.5, 0.0), (0.5, 0.5, 5.0));
-    let mut wall_3_object = Object::create(
-        ObjectType::Cube,
-        renderer::vertex::create_vertices(wall_3.0, wall_3.2, wall_3.3, wall_3.1)
-    );
-    wall_3_object.set_texture("textures/wall.jpg");
-    world.add_object(wall_3_object);
-
-    let wall_4 = cube::create_cube((5.0, 2.5, 0.0), (0.5, 0.5, 5.0));
-    let mut wall_4_object = Object::create(
-        ObjectType::Cube,
-        renderer::vertex::create_vertices(wall_4.0, wall_4.2, wall_4.3, wall_4.1)
-    );
-    wall_4_object.set_texture("textures/wall.jpg");
-    world.add_object(wall_4_object);*/
-
-    /*let test = parse("models/test2.fbx", (0.0, 5.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
-    let mut test_object = Object::create(
-        ObjectType::Mesh,
-        renderer::vertex::create_vertices(test.0, test.2, test.3, test.1)
-    );
-    test_object.set_displacement("textures/ground_displacement.png");
-    world.add_object(test_object);*/
-
     let test = parse("models/SELESTIA.fbx", (3.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
     let mut test_object = Object::create(
         ObjectType::Mesh,
@@ -98,14 +58,23 @@ fn main() {
     test_object.set_texture("textures/Selestia_costume.png");
     world.add_object(test_object);
 
-    /*let tablet = parse("models/niko.fbx", (0.0, 3.0, 0.0), (0.5, 0.5, 0.5), (0.0, 0.0, 0.0));
-    let mut tablet_object = Object::create(
+    let figure = parse("models/niko.fbx", (0.0, 3.0, 0.0), (0.5, 0.5, 0.5), (0.0, 0.0, 0.0));
+    let mut figure_object = Object::create(
         ObjectType::Grabbable,
+        renderer::vertex::create_vertices(figure.0, figure.2, figure.3, figure.1)
+    );
+    figure_object.set_texture("textures/niko.png");
+    figure_object.set_position((0.0, 3.0, 0.0));
+    world.add_object(figure_object);
+
+    let tablet = cube::create_cube((0.0, 0.0, 0.0), (1.0, 1.0, 0.1));
+    let mut tablet_object = Object::create(
+        ObjectType::TabletMenu,
         renderer::vertex::create_vertices(tablet.0, tablet.2, tablet.3, tablet.1)
     );
-    tablet_object.set_texture("textures/niko.png");
-    tablet_object.set_position((0.0, 3.0, 0.0));
-    world.add_object(tablet_object);*/
+    tablet_object.set_position((0.0, -10.0, 0.0));
+    tablet_object.set_texture("textures/wall.jpg");
+    world.add_object(tablet_object);
 
     renderer::setup::start_engine(world);
 }
