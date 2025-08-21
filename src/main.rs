@@ -9,13 +9,17 @@ fn main() {
     let mut world = world::world::create_world();
 
     let table = parse("models/table.fbx");
+    world.add_object(Object::create(
+        ObjectType::Mesh,
+        renderer::vertex::create_vertices(table.0, table.2, table.3, table.1)
+    ));
 
     world.add_object(Object::create(
         ObjectType::Camera,
         Vec::new()
     ));
 
-    let cube_object1 = world::objects::cube::create_cube((1.0, 1.0, 4.0), (0.0, 0.0, 0.0));
+    /*let cube_object1 = world::objects::cube::create_cube((1.0, 1.0, 4.0), (0.0, 0.0, 0.0));
     world.add_object(Object::create(
         ObjectType::Cube,
         renderer::vertex::create_vertices(cube_object1.0, cube_object1.2, cube_object1.3, cube_object1.1)
@@ -31,7 +35,7 @@ fn main() {
     world.add_object(Object::create(
         ObjectType::Cube,
         renderer::vertex::create_vertices(cube_object3.0, cube_object3.2, cube_object3.3, cube_object3.1)
-    ));
+    ));*/
 
     renderer::setup::start_engine(world);
 }
