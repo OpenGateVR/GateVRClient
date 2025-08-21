@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
-use crate::world::object::Object;
+use crate::world::object::{Object, ObjectType};
 use crate::world::world::World;
 
 pub struct TextureObject {
@@ -71,6 +71,7 @@ pub struct Renderer {
 
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     vertex_uniform_buffer: wgpu::Buffer,
+    model_uniform_buffers: Vec<wgpu::Buffer>,
     fragment_uniform_buffer: wgpu::Buffer,
 
     textures: HashMap<String, TextureObject>,
@@ -87,7 +88,7 @@ impl Renderer {
     fn create_buffer_displacement(
         init: &transforms::InitWgpu, 
         uniform_bind_group_layout: &wgpu::BindGroupLayout, 
-        vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer,
+        vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer, model_uniform_buffer: &wgpu::Buffer,
         displacement_texture: &wgpu::Texture, displacement_texture_size: wgpu::Extent3d, 
         displacement_rgba: &Vec<u8>, displacement_width: u32, displacement_height: u32,
         texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32, vertex_num: usize,
@@ -162,6 +163,10 @@ impl Renderer {
                 wgpu::BindGroupEntry {
                     binding: 5,
                     resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: model_uniform_buffer.as_entire_binding(),
                 },
             ],
             label: Some("Uniform Bind Group"),
@@ -242,6 +247,16 @@ impl Renderer {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
             label: Some("Uniform Bind Group Layout"),
         });
@@ -308,8 +323,8 @@ impl Renderer {
             mapped_at_creation: false,
         });
 
-        let model_mat = transforms::create_transforms([
-            0 as f32, 0 as f32, 0 as f32], 
+        let model_mat = transforms::create_transforms(
+            [0.0, 0.0, 0.0], 
             [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
         );
         let normal_mat = (model_mat.invert().unwrap()).transpose();
@@ -326,12 +341,14 @@ impl Renderer {
         textures.insert("textures/ground.jpg".to_string(), TextureObject::create("textures/ground.jpg", &init));
         textures.insert("textures/ground_displacement.png".to_string(), TextureObject::create("textures/ground_displacement.png", &init));
         textures.insert("textures/displacement.png".to_string(), TextureObject::create("textures/displacement.png", &init));
+        textures.insert("textures/niko.png".to_string(), TextureObject::create("textures/niko.png", &init));
+        textures.insert("textures/wall.jpg".to_string(), TextureObject::create("textures/wall.jpg", &init));
+        textures.insert("textures/skybox.png".to_string(), TextureObject::create("textures/skybox.png", &init));
 
         let vertex_buffer = Vec::new();
         let uniform_bind_group = Vec::new();
         let num_vertices = Vec::new();
 
-        let frame = 0;
         let previous_frame_time = std::time::Instant::now();
 
         Self {
@@ -340,7 +357,7 @@ impl Renderer {
 
             pipeline_displacement,
 
-            frame,
+            frame: 0,
             previous_frame_time,
 
             vertex_buffer,
@@ -349,6 +366,7 @@ impl Renderer {
 
             uniform_bind_group_layout,
             vertex_uniform_buffer,
+            model_uniform_buffers: Vec::new(),
             fragment_uniform_buffer,
 
             textures,
@@ -371,7 +389,7 @@ impl Renderer {
             self.project_mat = transforms::create_projection(new_size.width as f32 / new_size.height as f32);
         }
     }
-    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 5], mut mouse: [f64; 2]) {
+    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 5], mouse: [f64; 2]) {
         //self.camera_rotation.1 = dt.as_secs_f32();
         let current_time = std::time::Instant::now();
         let mut frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
@@ -418,6 +436,26 @@ impl Renderer {
         self.camera_position.1 += self.camera_acceleration_walking.1 * 4.0 * frame_time;
         self.camera_position.2 += self.camera_acceleration_walking.2 * 4.0 * frame_time;
 
+        // update skybox positions
+        if self.frame % 10 == 0 {
+            for i in 0..self.objects.len() {
+                if self.objects[i].get_object_type() == ObjectType::Skybox {
+                    let model_mat = transforms::create_transforms(
+                        [self.camera_position.0, self.camera_position.1, self.camera_position.2], 
+                        [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+                    );
+                    let normal_mat = (model_mat.invert().unwrap()).transpose();
+
+                    let model_ref:&[f32; 16] = model_mat.as_ref();
+                    let normal_ref:&[f32; 16] = normal_mat.as_ref();
+                    let eye_position:&[f32; 3] = &self.camera_position.into();
+                    self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
+                    self.init.queue.write_buffer(&self.model_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+                    self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
+                }
+            }
+        }
+
         let up_direction = cgmath::Vector3::unit_y();
         let (view_mat, project_mat, _) = transforms::create_view_rotation(
             self.camera_position.into(), self.camera_rotation.1, self.camera_rotation.0, 
@@ -427,17 +465,11 @@ impl Renderer {
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
         
         self.init.queue.write_buffer(&self.vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
-        
-        // update lighting position ever so often
-        if self.frame % 300 == 0 {
-            let eye_position:&[f32; 3] = &self.camera_position.into();
-            self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
-        }
 
         let current_time_updated = std::time::Instant::now();
         let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
 
-        if false {
+        if true {
             println!("fps: {}", 1.0 / update_time);
         }
 
@@ -457,12 +489,30 @@ impl Renderer {
             let vertices = object.get_vertices();
 
             if let Some(texture) = self.textures.get(object.get_texture()) {
+                let model_uniform_buffer: wgpu::Buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor{
+                    label: Some("Vertex Uniform Buffer"),
+                    size: 128,
+                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                });
+
+                let model_mat = transforms::create_transforms([
+                    0.0, 0.0, 0.0], 
+                    [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+                );
+                let normal_mat = (model_mat.invert().unwrap()).transpose();
+
+                let model_ref:&[f32; 16] = model_mat.as_ref();
+                let normal_ref:&[f32; 16] = normal_mat.as_ref();
+                self.init.queue.write_buffer(&model_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&model_uniform_buffer, 64, bytemuck::cast_slice(normal_ref));
+
                 if let Some(textue_displacement) = self.textures.get(object.get_displacement()) {
-                    let (uniform_bind_group, vertex_buffer) = 
-                    Self::create_buffer_displacement(
+                    let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
                         &self.init, &self.uniform_bind_group_layout, 
                         &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                        &textue_displacement.texture, textue_displacement.texture_size, &textue_displacement.texture_rgba, 
+                        &model_uniform_buffer, &textue_displacement.texture, textue_displacement.texture_size, 
+                        &textue_displacement.texture_rgba, 
                         textue_displacement.texture_width, textue_displacement.texture_height,
                         &texture.texture, texture.texture_size, &texture.texture_rgba, 
                         texture.texture_width, texture.texture_height, vertices.len(),
@@ -474,11 +524,11 @@ impl Renderer {
                     self.num_vertices.push(vertices.len() as u32);
                     self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
                 } else if let Some(textue_displacement) = self.textures.get("textures/displacement.png") {
-                    let (uniform_bind_group, vertex_buffer) = 
-                    Self::create_buffer_displacement(
+                    let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
                         &self.init, &self.uniform_bind_group_layout, 
                         &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                        &textue_displacement.texture, textue_displacement.texture_size, &textue_displacement.texture_rgba, 
+                        &model_uniform_buffer, &textue_displacement.texture, textue_displacement.texture_size, 
+                        &textue_displacement.texture_rgba, 
                         textue_displacement.texture_width, textue_displacement.texture_height,
                         &texture.texture, texture.texture_size, &texture.texture_rgba, 
                         texture.texture_width, texture.texture_height, vertices.len(),
@@ -490,6 +540,7 @@ impl Renderer {
                     self.num_vertices.push(vertices.len() as u32);
                     self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
                 }
+                self.model_uniform_buffers.push(model_uniform_buffer);
             }
         }
 

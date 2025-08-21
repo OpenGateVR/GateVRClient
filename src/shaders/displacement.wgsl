@@ -4,9 +4,15 @@ struct Uniforms {
     normal_mat : mat4x4<f32>,
 };
 
+struct Model {
+    model_mat : mat4x4<f32>,
+    normal_mat : mat4x4<f32>
+};
+
 @binding(0) @group(0) var<uniform> uniforms : Uniforms;
 @binding(4) @group(0) var displacement_tex: texture_2d<f32>;
 @binding(5) @group(0) var displacement_sampler: sampler;
+@binding(6) @group(0) var<uniform> model : Model;
 
 struct Output {
     @builtin(position) position : vec4<f32>,
@@ -27,10 +33,10 @@ fn vs_main(@location(0) pos: vec4<f32>, @location(1) normal: vec4<f32>, @locatio
     // Apply displacement along vertex normal
     let displaced_pos: vec4<f32> = pos + vec4(normalize(normal.xyz) * displacement * strength, 0.0);
 
-    let m_position:vec4<f32> = uniforms.model_mat * displaced_pos;
+    let m_position:vec4<f32> = model.model_mat * displaced_pos;
     output.position = uniforms.view_project_mat * m_position;
     output.v_position = m_position;
-    output.v_normal =  uniforms.normal_mat * normal;
+    output.v_normal =  model.normal_mat * normal;
     output.v_color = color;
     output.v_uv = uv;
     return output;

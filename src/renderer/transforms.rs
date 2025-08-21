@@ -81,7 +81,7 @@ pub fn create_view(camera_position: Point3<f32>, look_direction: Point3<f32>, up
 
 pub fn create_projection(aspect:f32) -> Matrix4<f32> {
     let project_mat:Matrix4<f32>;
-    project_mat = OPENGL_TO_WGPU_MATRIX * perspective(Rad(2.0*PI/5.0), aspect, 0.1, 100.0);
+    project_mat = OPENGL_TO_WGPU_MATRIX * perspective(Rad(2.0*PI/5.0), aspect, 0.1, 1000.0);
     project_mat
 }
 
@@ -89,7 +89,7 @@ pub fn create_view_projection(camera_position: Point3<f32>, look_direction: Poin
     aspect:f32) -> (Matrix4<f32>, Matrix4<f32>, Matrix4<f32>) {
     let view_mat = Matrix4::look_at_rh(camera_position, look_direction, up_direction);     
     let project_mat:Matrix4<f32>;
-    project_mat = OPENGL_TO_WGPU_MATRIX * perspective(Rad(2.0*PI/5.0), aspect, 0.1, 100.0);
+    project_mat = OPENGL_TO_WGPU_MATRIX * perspective(Rad(2.0*PI/5.0), aspect, 0.1, 1000.0);
     let view_project_mat = project_mat * view_mat;
     (view_mat, project_mat, view_project_mat)
 }
@@ -106,7 +106,7 @@ pub fn create_view_rotation(camera_position: Point3<f32>, yaw: f32, pitch: f32, 
 
     let view_mat = Matrix4::look_at_rh(camera_position, target, up_direction);     
     let project_mat:Matrix4<f32>;
-    project_mat = OPENGL_TO_WGPU_MATRIX * perspective(Rad(2.0*PI/5.0), aspect, 0.1, 500.0);
+    project_mat = OPENGL_TO_WGPU_MATRIX * perspective(Rad(2.0*PI/5.0), aspect, 0.1, 1000.0);
     let view_project_mat = project_mat * view_mat;
     (view_mat, project_mat, view_project_mat)
 }

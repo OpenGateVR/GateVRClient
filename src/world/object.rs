@@ -6,6 +6,7 @@ pub enum ObjectType {
     Camera,
     Sphere,
     Mesh,
+    Skybox
 }
 
 // this is a game object, and will be used to render the vertices
@@ -16,7 +17,8 @@ pub struct Object {
     size: (f32, f32, f32),
     vertices: Vec<Vertex>,
     texture: String,
-    displacement_texture: String
+    displacement_texture: String,
+    movable: bool
 }
 impl Object {
     pub fn create(object_type: ObjectType, vertices: Vec<Vertex>) -> Self {
@@ -26,7 +28,8 @@ impl Object {
             size: (0.0, 0.0, 0.0),
             vertices: vertices,
             texture: "textures/ground.jpg".to_string(),
-            displacement_texture: "None".to_string()
+            displacement_texture: "None".to_string(),
+            movable: false
         }
     }
 
@@ -42,6 +45,9 @@ impl Object {
     pub fn set_displacement(&mut self, texture: &str) {
         self.displacement_texture = texture.to_string()
     }
+    pub fn set_movable(&mut self, value: bool) {
+        self.movable = value;
+    }
 
     pub fn get_vertices(&self) -> &Vec<Vertex> {
         &self.vertices
@@ -54,5 +60,8 @@ impl Object {
     }
     pub fn get_displacement(&self) -> &str {
         &self.displacement_texture
+    }
+    pub fn get_movable(&self) -> bool {
+        self.movable
     }
 }

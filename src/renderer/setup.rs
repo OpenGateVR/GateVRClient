@@ -18,6 +18,8 @@ pub fn start_engine(world: World) {
 
     let mut keys = [false; 5]; // keys: W A S D
     let mut mouse = [0.0; 2]; // mouse movement x and y
+    
+    renderer.set_objects(&world);
 
     event_loop.run(move |event, _, control_flow| {
         mouse[0] -= mouse[0] * 0.1;
@@ -126,10 +128,6 @@ pub fn start_engine(world: World) {
                 let dt = now - render_start_time;
 
                 renderer.update(dt, keys, mouse);
-
-                if frame % 120 == 0 {
-                    renderer.set_objects(&world);
-                }
 
                 match renderer.render() {
                     Ok(_) => {}
