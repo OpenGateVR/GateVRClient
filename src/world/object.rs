@@ -24,7 +24,7 @@ impl Object {
             position: (0.0, 0.0, 0.0),
             size: (0.0, 0.0, 0.0),
             vertices: vertices,
-            texture: "wood.jpg".to_string()
+            texture: "textures/table.png".to_string()
         }
     }
 
@@ -40,5 +40,8 @@ impl Object {
     }
     pub fn get_object_type(&self) -> ObjectType {
         self.object_type
+    }
+    pub fn get_texture(&self) -> &str {
+        &self.texture
     }
 }

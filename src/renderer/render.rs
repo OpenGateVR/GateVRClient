@@ -4,11 +4,53 @@ use std::iter;
 use wgpu::BindGroup;
 use rust_embed::RustEmbed;
 use image::GenericImageView;
+use std::collections::HashMap;
 
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
 use crate::world::object::Object;
 use crate::world::world::World;
+
+pub struct TextureObject {
+    texture: wgpu::Texture,
+    texture_size: wgpu::Extent3d,
+    texture_rgba: Vec<u8>,
+    texture_width: u32,
+    texture_height: u32
+}
+impl TextureObject {
+    pub fn create(path: &str, init: &transforms::InitWgpu) -> Self {
+        let texture_data = Assets::get(path).expect("Failed to load embedded texture");
+        let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
+        println!("loaded {}", path);
+        let texture_rgba = img.to_rgba8().to_vec();
+        let (width, height) = img.dimensions();
+        let texture_size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
+
+        let texture: wgpu::Texture = init.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Texture"),
+            size: texture_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+
+        Self {
+            texture,
+            texture_size,
+            texture_rgba,
+            texture_width: width,
+            texture_height: height
+        }
+    }
+}
 
 #[derive(RustEmbed)]
 #[folder = "client_assets/"]
@@ -29,12 +71,7 @@ pub struct Renderer {
     vertex_uniform_buffer: wgpu::Buffer,
     fragment_uniform_buffer: wgpu::Buffer,
 
-    // default texture, for things like fallback worlds
-    world_texture: wgpu::Texture,
-    world_texture_size: wgpu::Extent3d,
-    world_texture_rgba: Vec<u8>,
-    world_texture_width: u32,
-    world_texture_height: u32,
+    textures: HashMap<String, TextureObject>,
 
     // the client position and rotation
     camera_position: (f32, f32, f32),
@@ -237,29 +274,10 @@ impl Renderer {
         init.queue.write_buffer(&vertex_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
         init.queue.write_buffer(&vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
 
-        let texture_data = Assets::get("textures/atlas.png").expect("Failed to load embedded texture");
-        let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
-        println!("loaded blocks/atlas");
-        let world_texture_rgba = img.to_rgba8().to_vec();
-        let (width, height) = img.dimensions();
-        let world_texture_size = wgpu::Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        };
-        let world_texture_width = width;
-        let world_texture_height = height;
-
-        let world_texture: wgpu::Texture = init.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Texture"),
-            size: world_texture_size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
+        let mut textures: HashMap<String, TextureObject> = HashMap::new();
+        textures.insert("textures/atlas.png".to_string(), TextureObject::create("textures/atlas.png", &init));
+        textures.insert("textures/wood.jpg".to_string(), TextureObject::create("textures/wood.jpg", &init));
+        textures.insert("textures/table.png".to_string(), TextureObject::create("textures/table.png", &init));
 
         let vertex_buffer = Vec::new();
         let uniform_bind_group = Vec::new();
@@ -283,11 +301,7 @@ impl Renderer {
             vertex_uniform_buffer,
             fragment_uniform_buffer,
 
-            world_texture,
-            world_texture_size,
-            world_texture_rgba,
-            world_texture_width,
-            world_texture_height,
+            textures,
 
             camera_position,
             camera_rotation,
@@ -388,19 +402,21 @@ impl Renderer {
         for object in &objects {
             let vertices = object.get_vertices();
 
-            let (uniform_bind_group, vertex_buffer) = 
+            if let Some(texture) = self.textures.get(object.get_texture()) {
+                let (uniform_bind_group, vertex_buffer) = 
                 Self::create_buffer(
                     &self.init, &self.uniform_bind_group_layout, 
                     &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                    &self.world_texture, self.world_texture_size, &self.world_texture_rgba, 
-                    self.world_texture_width, self.world_texture_height, vertices.len()
+                    &texture.texture, texture.texture_size, &texture.texture_rgba, 
+                    texture.texture_width, texture.texture_height, vertices.len()
                 );
-            
-            self.vertex_buffer.push(vertex_buffer);
-            self.uniform_bind_group.push(uniform_bind_group);
+                
+                self.vertex_buffer.push(vertex_buffer);
+                self.uniform_bind_group.push(uniform_bind_group);
 
-            self.num_vertices.push(vertices.len() as u32);
-            self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
+                self.num_vertices.push(vertices.len() as u32);
+                self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
+            }
         }
 
         self.objects = objects;
