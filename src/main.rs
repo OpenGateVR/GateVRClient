@@ -18,14 +18,6 @@ fn main() {
     skybox_object.set_movable(true);
     world.add_object(skybox_object);
 
-    let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
-    let mut table_object = Object::create(
-        ObjectType::Mesh,
-        renderer::vertex::create_vertices(table.0, table.2, table.3, table.1)
-    );
-    table_object.set_texture("textures/table.png");
-    world.add_object(table_object);
-
     let mut camera = Object::create(
         ObjectType::Camera,
         Vec::new()
@@ -33,6 +25,14 @@ fn main() {
     camera.set_position((-3.0, 4.0, 3.0));
     camera.set_rotation((0.0, -45.0, 0.0));
     world.add_object(camera);
+
+    /*let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
+    let mut table_object = Object::create(
+        ObjectType::Mesh,
+        renderer::vertex::create_vertices(table.0, table.2, table.3, table.1)
+    );
+    table_object.set_texture("textures/table.png");
+    world.add_object(table_object);
 
     let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0), (0.0, 0.0, 0.0));
     let mut ground_object = Object::create(
@@ -80,16 +80,31 @@ fn main() {
         renderer::vertex::create_vertices(wall_4.0, wall_4.2, wall_4.3, wall_4.1)
     );
     wall_4_object.set_texture("textures/wall.jpg");
-    world.add_object(wall_4_object);
+    world.add_object(wall_4_object);*/
 
-    let tablet = parse("models/niko.fbx", (0.0, 3.0, 0.0), (0.5, 0.5, 0.5), (0.0, 0.0, 0.0));
+    /*let test = parse("models/test2.fbx", (0.0, 5.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
+    let mut test_object = Object::create(
+        ObjectType::Mesh,
+        renderer::vertex::create_vertices(test.0, test.2, test.3, test.1)
+    );
+    test_object.set_displacement("textures/ground_displacement.png");
+    world.add_object(test_object);*/
+
+    let test = parse("models/SELESTIA.fbx", (0.0, 3.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
+    let test_object = Object::create(
+        ObjectType::Mesh,
+        renderer::vertex::create_vertices(test.0, test.2, test.3, test.1)
+    );
+    world.add_object(test_object);
+
+    /*let tablet = parse("models/niko.fbx", (0.0, 3.0, 0.0), (0.5, 0.5, 0.5), (0.0, 0.0, 0.0));
     let mut tablet_object = Object::create(
         ObjectType::Grabbable,
         renderer::vertex::create_vertices(tablet.0, tablet.2, tablet.3, tablet.1)
     );
     tablet_object.set_texture("textures/niko.png");
     tablet_object.set_position((0.0, 3.0, 0.0));
-    world.add_object(tablet_object);
+    world.add_object(tablet_object);*/
 
     renderer::setup::start_engine(world);
 }

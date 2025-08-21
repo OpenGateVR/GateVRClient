@@ -1,11 +1,42 @@
 use rust_embed::RustEmbed;
 use fbx::{File, Node};
 use fbx::Property;
+use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 
 #[derive(RustEmbed)]
 #[folder = "client_assets/"]
 struct Assets;
+
+#[derive(Debug)]
+struct Mesh {
+    vertices: Vec<f64>,
+    indices: Vec<i32>,
+    uv: Vec<f64>,
+    uv_indices: Vec<i32>,
+    id: i64
+}
+
+#[derive(Debug)]
+struct Transform {
+    translation: (f64, f64, f64),
+    rotation: (f64, f64, f64),
+    scaling: (f64, f64, f64),
+    name: String,
+    id: i64
+}
+
+struct Connection {
+    from: i64,
+    to: i64,
+}
+
+#[derive(Debug)]
+struct Object {
+    name: String,
+    mesh: Mesh,
+    transform: Transform,
+}
 
 fn rotate_x(v: [f64; 3], angle: f64) -> [f64; 3] {
     let (s, c) = angle.sin_cos();
@@ -34,31 +65,80 @@ fn rotate_z(v: [f64; 3], angle: f64) -> [f64; 3] {
     ]
 }
 
-fn traverse_nodes(node: &Node) -> (Vec<f64>, Vec<i32>, Vec<f64>, Vec<i32>) {
-    let mut vertices: Vec<f64> = vec![];
-    let mut indices: Vec<i32> = vec![];
+fn get_id(node: &Node) -> Option<i64> {
+    match node.properties.get(0) {
+        Some(Property::I64(id)) => Some(*id),
+        Some(Property::I32(id)) => Some(*id as i64),
+        _ => None,
+    }
+}
 
-    let mut uv: Vec<f64> = vec![];
-    let mut uv_indices: Vec<i32> = vec![];
+fn parse_connections(node: &Node) -> Vec<Connection> {
+    let mut conns = Vec::new();
+
+    if node.name == "Connections" {
+        for child in &node.children {
+            if child.name == "C" && child.properties.len() >= 3 {
+                let from = match &child.properties[1] {
+                    Property::I64(v) => *v,
+                    Property::I32(v) => *v as i64,
+                    _ => continue,
+                };
+                let to = match &child.properties[2] {
+                    Property::I64(v) => *v,
+                    Property::I32(v) => *v as i64,
+                    _ => continue,
+                };
+
+                conns.push(Connection { from, to });
+            }
+        }
+    }
+
+    conns
+}
+
+fn traverse_nodes(node: &Node) -> Vec<Mesh> {
+    let mut meshes = Vec::new();
 
     if node.name == "Geometry" {
+        let mut vertices = Vec::new();
+        let mut indices = Vec::new();
+        let mut uv = Vec::new();
+        let mut uv_indices = Vec::new();
+
         for child in &node.children {
             match child.name.as_str() {
                 "Vertices" => {
                     for prop in &child.properties {
-                        match prop {
-                            Property::F64Array(arr) => {
-                                vertices.extend(arr);
-                            }
-                            _ => {}
+                        if let Property::F64Array(arr) = prop {
+                            vertices.extend(arr);
                         }
                     }
                 }
                 "PolygonVertexIndex" => {
                     for prop in &child.properties {
-                        match prop {
-                            Property::I32Array(arr) => {
-                                indices.extend(arr);
+                        if let Property::I32Array(arr) = prop {
+                            indices.extend(arr);
+                        }
+                    }
+                }
+                "LayerElementUV" => {
+                    for sub in &child.children {
+                        match sub.name.as_str() {
+                            "UV" => {
+                                for prop in &sub.properties {
+                                    if let Property::F64Array(arr) = prop {
+                                        uv.extend(arr);
+                                    }
+                                }
+                            }
+                            "UVIndex" => {
+                                for prop in &sub.properties {
+                                    if let Property::I32Array(arr) = prop {
+                                        uv_indices.extend(arr);
+                                    }
+                                }
                             }
                             _ => {}
                         }
@@ -67,35 +147,97 @@ fn traverse_nodes(node: &Node) -> (Vec<f64>, Vec<i32>, Vec<f64>, Vec<i32>) {
                 _ => {}
             }
         }
-    } else if node.name == "UV" {
-        for prop in &node.properties {
-            match prop {
-                Property::F64Array(arr) => {
-                    uv.extend(arr);
-                }
-                _ => {}
-            }
+
+        let id: i64;
+        if let Some(id_found) = get_id(node) {
+            id = id_found;
+        } else {
+            id = 0;
         }
-    } else if node.name == "UVIndex" {
-        for prop in &node.properties {
-            match prop {
-                Property::I32Array(arr) => {
-                    uv_indices.extend(arr);
-                }
-                _ => {}
-            }
-        }
+
+        meshes.push(Mesh {
+            vertices,
+            indices,
+            uv,
+            uv_indices,
+            id
+        });
     }
 
+    // Recurse into children
     for child in &node.children {
-        let (vertices_out, indices_out, uv_out, uv_indices_out) = traverse_nodes(child);
-        vertices.extend(vertices_out);
-        indices.extend(indices_out);
-        uv.extend(uv_out);
-        uv_indices.extend(uv_indices_out);
+        meshes.extend(traverse_nodes(child));
     }
 
-    (vertices, indices, uv, uv_indices)
+    meshes
+}
+
+fn get_transform(node: &Node) -> Option<Transform> {
+    if node.name == "Model" {
+        let mut name = String::new();
+        if let Some(Property::String(s)) = node.properties.get(1) {
+            name = s.clone();
+        }
+
+        let mut translation = (0.0, 0.0, 0.0);
+        let mut rotation = (0.0, 0.0, 0.0);
+        let mut scaling = (1.0, 1.0, 1.0);
+
+        for child in &node.children {
+            if child.name == "Properties70" {
+                for p in &child.children {
+                    if p.name == "P" {
+                        // Property format: ["Lcl Translation", "Lcl Translation", "", "A", x, y, z]
+                        if p.properties.len() >= 7 {
+                            // First element is a String
+                            let prop_name = match &p.properties[0] {
+                                Property::String(s) => s.as_str(),
+                                _ => continue,
+                            };
+
+                            // Extract x, y, z as f64
+                            let mut nums = [0.0, 0.0, 0.0];
+                            for (i, n) in nums.iter_mut().enumerate() {
+                                let idx = 4 + i;
+                                if let Some(prop) = p.properties.get(idx) {
+                                    *n = match prop {
+                                        Property::F64(v) => *v,
+                                        Property::I32(v) => *v as f64,
+                                        Property::I64(v) => *v as f64,
+                                        _ => 0.0,
+                                    };
+                                }
+                            }
+                            
+                            match prop_name {
+                                "Lcl Translation" => translation = (nums[0] / 100.0, nums[1] / 100.0, nums[2] / 100.0),
+                                "Lcl Rotation" => rotation = (nums[0], nums[1], nums[2]),
+                                "Lcl Scaling" => scaling = (nums[0] / 100.0, nums[1] / 100.0, nums[2] / 100.0),
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let id: i64;
+        if let Some(id_found) = get_id(node) {
+            id = id_found;
+        } else {
+            id = 0;
+        }
+
+        return Some(Transform {
+            translation,
+            rotation,
+            scaling,
+            name,
+            id
+        });
+    }
+
+    None
 }
 
 pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rotation: (f64, f64, f64)) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
@@ -109,123 +251,141 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
     let mut colors: Vec<[f32; 3]> = Vec::new();
     let mut uvs: Vec<[f32; 2]> = Vec::new();
 
-    println!("FBX Version: {:?}", file.version);
-    let mut vertices_unparsed: Vec<f64> = vec![];
-    let mut indices_unparsed: Vec<i32> = vec![];
-    let mut uvs_unparsed: Vec<f64> = vec![];
-    let mut uv_indices_unparsed: Vec<i32> = vec![];
+    let mut transforms = HashMap::new();
+    let mut connections = Vec::new();
+
     for node in &file.children {
-        let (vertices_out, indices_out, uv_out, uv_indices_out) = traverse_nodes(node);
-        vertices_unparsed.extend(vertices_out);
-        indices_unparsed.extend(indices_out);
-        uvs_unparsed.extend(uv_out);
-        uv_indices_unparsed.extend(uv_indices_out);
-    }
-
-    let mut triangles = vec![];
-    let mut current_polygon = vec![];
-    let mut current_uvs = vec![];
-
-    for (index_uv, i) in indices_unparsed.iter().enumerate() {
-        let index = if *i < 0 {
-            ((-i) - 1) as usize
-        } else {
-            *i as usize
-        };
-        current_polygon.push(index);
-        current_uvs.push(uv_indices_unparsed[index_uv as usize]);
-
-        if *i < 0 {
-            // polygon ended, triangulate
-            for j in 1..current_polygon.len() - 1 {
-                triangles.push([
-                    current_polygon[0],
-                    current_polygon[j],
-                    current_polygon[j + 1],
-                    current_uvs[0] as usize,
-                    current_uvs[j] as usize,
-                    current_uvs[j + 1] as usize,
-                ]);
+        if node.name == "Objects" {
+            for child in &node.children {
+                if let Some(transform) = get_transform(child) {
+                    transforms.insert(transform.id, transform);
+                }
             }
-            current_polygon.clear();
-            current_uvs.clear();
         }
+        connections.extend(parse_connections(node));
     }
 
-    //println!("{:?}", triangles);
+    for node in &file.children {
+        let meshes = traverse_nodes(node);
+        for (index, mesh) in meshes.iter().enumerate() {
+            let mut transform = &Transform{
+                translation: (3.0 * index as f64, 0.0, 0.0),
+                rotation: (0.0, 0.0, 0.0),
+                scaling: (0.0, 0.0, 0.0),
+                name: "Unknown".to_string(),
+                id: 0
+            };
+            for connection in &connections {
+                if connection.from == mesh.id {
+                    if let Some(transform_found) = transforms.get(&connection.to) {
+                        transform = transform_found;
+                    }
+                }
+            }
 
-    for tri in triangles {
-        let mut v = [
-            vertices_unparsed[tri[0]*3] * scale.0,
-            vertices_unparsed[tri[0]*3+1] * scale.2,
-            vertices_unparsed[tri[0]*3+2] * scale.1,
-        ];
+            let mut triangles = vec![];
+            let mut current_polygon = vec![];
+            let mut current_uvs = vec![];
 
-        v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
-        v = rotate_x(v, rotation.0 * 0.0174532925);
-        v = rotate_y(v, rotation.1 * 0.0174532925);
-        v = rotate_z(v, rotation.2 * 0.0174532925);
+            for (index_uv, i) in mesh.indices.iter().enumerate() {
+                let index = if *i < 0 {
+                    ((-i) - 1) as usize
+                } else {
+                    *i as usize
+                };
+                current_polygon.push(index);
+                current_uvs.push(mesh.uv_indices[index_uv as usize]);
 
-        // translate
-        v[0] += position.0;
-        v[1] += position.1;
-        v[2] += position.2;
+                if *i < 0 {
+                    // polygon ended, triangulate
+                    for j in 1..current_polygon.len() - 1 {
+                        triangles.push([
+                            current_polygon[0],
+                            current_polygon[j],
+                            current_polygon[j + 1],
+                            current_uvs[0] as usize,
+                            current_uvs[j] as usize,
+                            current_uvs[j + 1] as usize,
+                        ]);
+                    }
+                    current_polygon.clear();
+                    current_uvs.clear();
+                }
+            }
 
-        vertices.push(v);
-        uvs.push([
-            uvs_unparsed[tri[3] * 2] as f32, 
-            1.0 - uvs_unparsed[tri[3] * 2 + 1] as f32
-        ]);
-        normals.push([0, 1, 0]);
-        colors.push([1.0, 1.0, 1.0]);
-        
-        let mut v = [
-            vertices_unparsed[tri[1]*3] * scale.0,
-            vertices_unparsed[tri[1]*3+1] * scale.2,
-            vertices_unparsed[tri[1]*3+2] * scale.1,
-        ];
+            //println!("{:?}", triangles);
 
-        v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
-        v = rotate_x(v, rotation.0 * 0.0174532925);
-        v = rotate_y(v, rotation.1 * 0.0174532925);
-        v = rotate_z(v, rotation.2 * 0.0174532925);
+            for tri in triangles {
+                let mut v = [
+                    mesh.vertices[tri[0]*3] * scale.0,
+                    mesh.vertices[tri[0]*3+1] * scale.2,
+                    mesh.vertices[tri[0]*3+2] * scale.1,
+                ];
 
-        // translate
-        v[0] += position.0;
-        v[1] += position.1;
-        v[2] += position.2;
+                v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
+                v = rotate_y(v, (rotation.1 + transform.rotation.1) * 0.0174532925);
+                v = rotate_z(v, (rotation.2 + transform.rotation.2) * 0.0174532925);
 
-        vertices.push(v);
-        uvs.push([
-            uvs_unparsed[tri[4] * 2] as f32, 
-            1.0 - uvs_unparsed[tri[4] * 2 + 1] as f32
-        ]);
-        normals.push([0, 1, 0]);
-        colors.push([1.0, 1.0, 1.0]);
+                // translate
+                v[0] += position.0 + transform.translation.0;
+                v[1] += position.1 + transform.translation.1;
+                v[2] += position.2 + transform.translation.2;
 
-        let mut v = [
-            vertices_unparsed[tri[2]*3] * scale.0,
-            vertices_unparsed[tri[2]*3+1] * scale.2,
-            vertices_unparsed[tri[2]*3+2] * scale.1,
-        ];
+                vertices.push(v);
+                uvs.push([
+                    mesh.uv[tri[3] * 2] as f32, 
+                    1.0 - mesh.uv[tri[3] * 2 + 1] as f32
+                ]);
+                normals.push([0, 1, 0]);
+                colors.push([1.0, 1.0, 1.0]);
+                
+                let mut v = [
+                    mesh.vertices[tri[1]*3] * scale.0,
+                    mesh.vertices[tri[1]*3+1] * scale.2,
+                    mesh.vertices[tri[1]*3+2] * scale.1,
+                ];
 
-        v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
-        v = rotate_x(v, rotation.0 * 0.0174532925);
-        v = rotate_y(v, rotation.1 * 0.0174532925);
-        v = rotate_z(v, rotation.2 * 0.0174532925);
+                v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
+                v = rotate_y(v, (rotation.1 + transform.rotation.1) * 0.0174532925);
+                v = rotate_z(v, (rotation.2 + transform.rotation.2) * 0.0174532925);
 
-        // translate
-        v[0] += position.0;
-        v[1] += position.1;
-        v[2] += position.2;
+                // translate
+                v[0] += position.0 + transform.translation.0;
+                v[1] += position.1 + transform.translation.1;
+                v[2] += position.2 + transform.translation.2;
 
-        vertices.push(v);
-        uvs.push([
-            uvs_unparsed[tri[5] * 2] as f32, 
-            1.0 - uvs_unparsed[tri[5] * 2 + 1] as f32
-        ]);
-        normals.push([0, 1, 0]);
-        colors.push([1.0, 1.0, 1.0]);
+                vertices.push(v);
+                uvs.push([
+                    mesh.uv[tri[4] * 2] as f32, 
+                    1.0 - mesh.uv[tri[4] * 2 + 1] as f32
+                ]);
+                normals.push([0, 1, 0]);
+                colors.push([1.0, 1.0, 1.0]);
+
+                let mut v = [
+                    mesh.vertices[tri[2]*3] * scale.0,
+                    mesh.vertices[tri[2]*3+1] * scale.2,
+                    mesh.vertices[tri[2]*3+2] * scale.1,
+                ];
+
+                v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
+                v = rotate_y(v, (rotation.1 + transform.rotation.1) * 0.0174532925);
+                v = rotate_z(v, (rotation.2 + transform.rotation.2) * 0.0174532925);
+
+                // translate
+                v[0] += position.0 + transform.translation.0;
+                v[1] += position.1 + transform.translation.1;
+                v[2] += position.2 + transform.translation.2;
+
+                vertices.push(v);
+                uvs.push([
+                    mesh.uv[tri[5] * 2] as f32, 
+                    1.0 - mesh.uv[tri[5] * 2 + 1] as f32
+                ]);
+                normals.push([0, 1, 0]);
+                colors.push([1.0, 1.0, 1.0]);
+            }
+        }
     }
 
     (vertices, uvs, normals, colors)
