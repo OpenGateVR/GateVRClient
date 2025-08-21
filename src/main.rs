@@ -8,16 +8,26 @@ use crate::world::{object::ObjectType, objects::fbx_parser::parse};
 fn main() {
     let mut world = world::world::create_world();
 
-    let table = parse("models/table.fbx", (0.0, 3.0, 0.0), (1.0, 1.0, 1.0));
-    world.add_object(Object::create(
+    let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0));
+    let mut table_object = Object::create(
         ObjectType::Mesh,
         renderer::vertex::create_vertices(table.0, table.2, table.3, table.1)
-    ));
+    );
+    table_object.set_texture("textures/table.png");
+    world.add_object(table_object);
 
     world.add_object(Object::create(
         ObjectType::Camera,
         Vec::new()
     ));
+
+    let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0));
+    let mut ground_object = Object::create(
+        ObjectType::Mesh,
+        renderer::vertex::create_vertices(ground.0, ground.2, ground.3, ground.1)
+    );
+    ground_object.set_displacement("textures/ground_displacement.png");
+    world.add_object(ground_object);
 
     /*let cube_object1 = world::objects::cube::create_cube((1.0, 1.0, 4.0), (0.0, 0.0, 0.0));
     world.add_object(Object::create(

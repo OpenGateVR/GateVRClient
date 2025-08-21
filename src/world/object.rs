@@ -15,7 +15,8 @@ pub struct Object {
     position: (f64, f64, f64),
     size: (f32, f32, f32),
     vertices: Vec<Vertex>,
-    texture: String
+    texture: String,
+    displacement_texture: String
 }
 impl Object {
     pub fn create(object_type: ObjectType, vertices: Vec<Vertex>) -> Self {
@@ -24,7 +25,8 @@ impl Object {
             position: (0.0, 0.0, 0.0),
             size: (0.0, 0.0, 0.0),
             vertices: vertices,
-            texture: "textures/table.png".to_string()
+            texture: "textures/ground.jpg".to_string(),
+            displacement_texture: "None".to_string()
         }
     }
 
@@ -33,6 +35,12 @@ impl Object {
     }
     pub fn set_size(&mut self, size: (f32, f32, f32)) {
         self.size = size;
+    }
+    pub fn set_texture(&mut self, texture: &str) {
+        self.texture = texture.to_string()
+    }
+    pub fn set_displacement(&mut self, texture: &str) {
+        self.displacement_texture = texture.to_string()
     }
 
     pub fn get_vertices(&self) -> &Vec<Vertex> {
@@ -43,5 +51,8 @@ impl Object {
     }
     pub fn get_texture(&self) -> &str {
         &self.texture
+    }
+    pub fn get_displacement(&self) -> &str {
+        &self.displacement_texture
     }
 }

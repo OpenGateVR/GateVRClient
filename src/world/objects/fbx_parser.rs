@@ -7,6 +7,33 @@ use std::io::{BufReader, Cursor};
 #[folder = "client_assets/"]
 struct Assets;
 
+fn rotate_x(v: [f64; 3], angle: f64) -> [f64; 3] {
+    let (s, c) = angle.sin_cos();
+    [
+        v[0],
+        v[1] * c - v[2] * s,
+        v[1] * s + v[2] * c,
+    ]
+}
+
+fn rotate_y(v: [f64; 3], angle: f64) -> [f64; 3] {
+    let (s, c) = angle.sin_cos();
+    [
+        v[0] * c + v[2] * s,
+        v[1],
+        -v[0] * s + v[2] * c,
+    ]
+}
+
+fn rotate_z(v: [f64; 3], angle: f64) -> [f64; 3] {
+    let (s, c) = angle.sin_cos();
+    [
+        v[0] * c - v[1] * s,
+        v[0] * s + v[1] * c,
+        v[2],
+    ]
+}
+
 fn traverse_nodes(node: &Node) -> (Vec<f64>, Vec<i32>, Vec<f64>, Vec<i32>) {
     let mut vertices: Vec<f64> = vec![];
     let mut indices: Vec<i32> = vec![];
@@ -132,42 +159,74 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64)) -> (
                 ]);
             }
             current_polygon.clear();
+            current_uvs.clear();
         }
     }
 
+    //println!("{:?}", triangles);
+
     for tri in triangles {
-        vertices.push([
-            vertices_unparsed[tri[0]*3] * scale.0 + position.0,
-            vertices_unparsed[tri[0]*3+1] * scale.1 + position.1,
-            vertices_unparsed[tri[0]*3+2] * scale.2 + position.2,
-        ]);
+        let mut v = [
+            vertices_unparsed[tri[0]*3] * scale.0,
+            vertices_unparsed[tri[0]*3+1] * scale.2,
+            vertices_unparsed[tri[0]*3+2] * scale.1,
+        ];
+
+        v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
+
+        // translate
+        v[0] += position.0;
+        v[1] += position.1;
+        v[2] += position.2;
+
+        vertices.push(v);
         uvs.push([
-            1.0 - uvs_unparsed[tri[3] * 2] as f32, 
+            uvs_unparsed[tri[3] * 2] as f32, 
             1.0 - uvs_unparsed[tri[3] * 2 + 1] as f32
         ]);
-        normals.push([0, 0, 1]);
+        normals.push([0, 1, 0]);
         colors.push([1.0, 1.0, 1.0]);
-        vertices.push([
-            vertices_unparsed[tri[1]*3] * scale.0 + position.0,
-            vertices_unparsed[tri[1]*3+1] * scale.1 + position.1,
-            vertices_unparsed[tri[1]*3+2] * scale.2 + position.2,
-        ]);
+        
+        let mut v = [
+            vertices_unparsed[tri[1]*3] * scale.0,
+            vertices_unparsed[tri[1]*3+1] * scale.2,
+            vertices_unparsed[tri[1]*3+2] * scale.1,
+        ];
+
+        v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
+
+        // translate
+        v[0] += position.0;
+        v[1] += position.1;
+        v[2] += position.2;
+
+        vertices.push(v);
         uvs.push([
-            1.0 - uvs_unparsed[tri[4] * 2] as f32, 
+            uvs_unparsed[tri[4] * 2] as f32, 
             1.0 - uvs_unparsed[tri[4] * 2 + 1] as f32
         ]);
-        normals.push([0, 0, 1]);
+        normals.push([0, 1, 0]);
         colors.push([1.0, 1.0, 1.0]);
-        vertices.push([
-            vertices_unparsed[tri[2]*3] * scale.0 + position.0,
-            vertices_unparsed[tri[2]*3+1] * scale.1 + position.1,
-            vertices_unparsed[tri[2]*3+2] * scale.2 + position.2,
-        ]);
+
+        let mut v = [
+            vertices_unparsed[tri[2]*3] * scale.0,
+            vertices_unparsed[tri[2]*3+1] * scale.2,
+            vertices_unparsed[tri[2]*3+2] * scale.1,
+        ];
+
+        v = rotate_x(v, -std::f64::consts::FRAC_PI_2);
+
+        // translate
+        v[0] += position.0;
+        v[1] += position.1;
+        v[2] += position.2;
+
+        vertices.push(v);
         uvs.push([
-            1.0 - uvs_unparsed[tri[5] * 2] as f32, 
+            uvs_unparsed[tri[5] * 2] as f32, 
             1.0 - uvs_unparsed[tri[5] * 2 + 1] as f32
         ]);
-        normals.push([0, 0, 1]);
+        normals.push([0, 1, 0]);
         colors.push([1.0, 1.0, 1.0]);
     }
 

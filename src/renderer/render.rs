@@ -59,7 +59,9 @@ struct Assets;
 pub struct Renderer {
     pub init: transforms::InitWgpu,
     project_mat: Matrix4<f32>,
-    pipeline: wgpu::RenderPipeline,
+
+    pipeline_displacement: wgpu::RenderPipeline,
+
     frame: usize,
     previous_frame_time: std::time::Instant,
 
@@ -82,11 +84,13 @@ pub struct Renderer {
     cameras: Vec<Object>
 }
 impl Renderer {
-    fn create_buffer(
+    fn create_buffer_displacement(
         init: &transforms::InitWgpu, 
         uniform_bind_group_layout: &wgpu::BindGroupLayout, 
         vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer,
-        texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32, vertex_num: usize
+        displacement_texture: &wgpu::Texture, displacement_texture_size: wgpu::Extent3d, 
+        displacement_rgba: &Vec<u8>, displacement_width: u32, displacement_height: u32,
+        texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32, vertex_num: usize,
     ) -> (BindGroup, wgpu::Buffer) {
         init.queue.write_texture(
             wgpu::ImageCopyTexture {
@@ -103,8 +107,25 @@ impl Renderer {
             },
             texture_size,
         );
+
+        init.queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &displacement_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &displacement_rgba,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * displacement_width),
+                rows_per_image: Some(displacement_height),
+            },
+            displacement_texture_size,
+        );
         
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let displacement_texture_view = displacement_texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = init.device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -132,6 +153,14 @@ impl Renderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 3,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::TextureView(&displacement_texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 },
             ],
@@ -197,6 +226,22 @@ impl Renderer {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
             ],
             label: Some("Uniform Bind Group Layout"),
         });
@@ -207,21 +252,21 @@ impl Renderer {
             push_constant_ranges: &[],
         });
 
-        let shader = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        let shader_displacement = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/default.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/displacement.wgsl").into()),
         });
 
-        let pipeline = init.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let pipeline_displacement = init.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Render Pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader,
+                module: &shader_displacement,
                 entry_point: "vs_main",
                 buffers: &[Vertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
+                module: &shader_displacement,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
                     format: init.config.format,
@@ -278,6 +323,9 @@ impl Renderer {
         textures.insert("textures/atlas.png".to_string(), TextureObject::create("textures/atlas.png", &init));
         textures.insert("textures/wood.jpg".to_string(), TextureObject::create("textures/wood.jpg", &init));
         textures.insert("textures/table.png".to_string(), TextureObject::create("textures/table.png", &init));
+        textures.insert("textures/ground.jpg".to_string(), TextureObject::create("textures/ground.jpg", &init));
+        textures.insert("textures/ground_displacement.png".to_string(), TextureObject::create("textures/ground_displacement.png", &init));
+        textures.insert("textures/displacement.png".to_string(), TextureObject::create("textures/displacement.png", &init));
 
         let vertex_buffer = Vec::new();
         let uniform_bind_group = Vec::new();
@@ -289,7 +337,9 @@ impl Renderer {
         Self {
             init,
             project_mat,
-            pipeline,
+
+            pipeline_displacement,
+
             frame,
             previous_frame_time,
 
@@ -403,19 +453,39 @@ impl Renderer {
             let vertices = object.get_vertices();
 
             if let Some(texture) = self.textures.get(object.get_texture()) {
-                let (uniform_bind_group, vertex_buffer) = 
-                Self::create_buffer(
-                    &self.init, &self.uniform_bind_group_layout, 
-                    &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                    &texture.texture, texture.texture_size, &texture.texture_rgba, 
-                    texture.texture_width, texture.texture_height, vertices.len()
-                );
-                
-                self.vertex_buffer.push(vertex_buffer);
-                self.uniform_bind_group.push(uniform_bind_group);
+                if let Some(textue_displacement) = self.textures.get(object.get_displacement()) {
+                    let (uniform_bind_group, vertex_buffer) = 
+                    Self::create_buffer_displacement(
+                        &self.init, &self.uniform_bind_group_layout, 
+                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
+                        &textue_displacement.texture, textue_displacement.texture_size, &textue_displacement.texture_rgba, 
+                        textue_displacement.texture_width, textue_displacement.texture_height,
+                        &texture.texture, texture.texture_size, &texture.texture_rgba, 
+                        texture.texture_width, texture.texture_height, vertices.len(),
+                    );
+                    
+                    self.vertex_buffer.push(vertex_buffer);
+                    self.uniform_bind_group.push(uniform_bind_group);
 
-                self.num_vertices.push(vertices.len() as u32);
-                self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
+                    self.num_vertices.push(vertices.len() as u32);
+                    self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
+                } else if let Some(textue_displacement) = self.textures.get("textures/displacement.png") {
+                    let (uniform_bind_group, vertex_buffer) = 
+                    Self::create_buffer_displacement(
+                        &self.init, &self.uniform_bind_group_layout, 
+                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
+                        &textue_displacement.texture, textue_displacement.texture_size, &textue_displacement.texture_rgba, 
+                        textue_displacement.texture_width, textue_displacement.texture_height,
+                        &texture.texture, texture.texture_size, &texture.texture_rgba, 
+                        texture.texture_width, texture.texture_height, vertices.len(),
+                    );
+                    
+                    self.vertex_buffer.push(vertex_buffer);
+                    self.uniform_bind_group.push(uniform_bind_group);
+
+                    self.num_vertices.push(vertices.len() as u32);
+                    self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
+                }
             }
         }
 
@@ -479,7 +549,7 @@ impl Renderer {
                 }),
             });
 
-            render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_pipeline(&self.pipeline_displacement);
             for i in 0..self.vertex_buffer.len() {
                 render_pass.set_vertex_buffer(0, self.vertex_buffer[i].slice(..));           
                 render_pass.set_bind_group(0, &self.uniform_bind_group[i], &[]);
