@@ -8,7 +8,7 @@ use crate::world::{object::ObjectType, objects::fbx_parser::parse};
 fn main() {
     let mut world = world::world::create_world();
 
-    let table = parse("models/table.fbx");
+    let table = parse("models/table.fbx", (0.0, 3.0, 0.0), (1.0, 1.0, 1.0));
     world.add_object(Object::create(
         ObjectType::Mesh,
         renderer::vertex::create_vertices(table.0, table.2, table.3, table.1)

@@ -82,7 +82,7 @@ fn traverse_nodes(node: &Node) -> (Vec<f64>, Vec<i32>, Vec<f64>, Vec<i32>) {
     (vertices, indices, uv, uv_indices)
 }
 
-pub fn parse(path: &str) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
+pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64)) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
     let mut reader = BufReader::new(cursor);
@@ -141,9 +141,9 @@ pub fn parse(path: &str) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f3
 
     for (i, tri) in triangles.iter().enumerate() {
         vertices.push([
-            vertices_unparsed[tri[0]*3],
-            vertices_unparsed[tri[0]*3+1],
-            vertices_unparsed[tri[0]*3+2],
+            vertices_unparsed[tri[0]*3] * scale.0 + position.0,
+            vertices_unparsed[tri[0]*3+1] * scale.1 + position.1,
+            vertices_unparsed[tri[0]*3+2] * scale.2 + position.2,
         ]);
         uvs.push([
             uvs_unparsed[uvs_triangles[i][0] as usize * 2] as f32, 
@@ -152,9 +152,9 @@ pub fn parse(path: &str) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f3
         normals.push([0, 0, 1]);
         colors.push([1.0, 0.5, 0.5]);
         vertices.push([
-            vertices_unparsed[tri[1]*3],
-            vertices_unparsed[tri[1]*3+1],
-            vertices_unparsed[tri[1]*3+2],
+            vertices_unparsed[tri[1]*3] * scale.0 + position.0,
+            vertices_unparsed[tri[1]*3+1] * scale.1 + position.1,
+            vertices_unparsed[tri[1]*3+2] * scale.2 + position.2,
         ]);
         uvs.push([
             uvs_unparsed[uvs_triangles[i][1] as usize * 2] as f32, 
@@ -163,9 +163,9 @@ pub fn parse(path: &str) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f3
         normals.push([0, 0, 1]);
         colors.push([1.0, 0.5, 0.5]);
         vertices.push([
-            vertices_unparsed[tri[2]*3],
-            vertices_unparsed[tri[2]*3+1],
-            vertices_unparsed[tri[2]*3+2],
+            vertices_unparsed[tri[2]*3] * scale.0 + position.0,
+            vertices_unparsed[tri[2]*3+1] * scale.1 + position.1,
+            vertices_unparsed[tri[2]*3+2] * scale.2 + position.2,
         ]);
         uvs.push([
             uvs_unparsed[uvs_triangles[i][2] as usize * 2] as f32, 

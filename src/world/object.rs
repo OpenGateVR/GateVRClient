@@ -14,7 +14,8 @@ pub struct Object {
     object_type: ObjectType,
     position: (f64, f64, f64),
     size: (f32, f32, f32),
-    vertices: Vec<Vertex>
+    vertices: Vec<Vertex>,
+    texture: String
 }
 impl Object {
     pub fn create(object_type: ObjectType, vertices: Vec<Vertex>) -> Self {
@@ -22,7 +23,8 @@ impl Object {
             object_type: object_type,
             position: (0.0, 0.0, 0.0),
             size: (0.0, 0.0, 0.0),
-            vertices: vertices
+            vertices: vertices,
+            texture: "wood.jpg".to_string()
         }
     }
 
