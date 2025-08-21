@@ -64,17 +64,6 @@ fn traverse_nodes(node: &Node) -> (Vec<f64>, Vec<i32>, Vec<f64>, Vec<i32>) {
                         }
                     }
                 }
-                "UVIndex" => {
-                    for prop in &child.properties {
-                        println!("  Property: {:?}", prop);
-                        match prop {
-                            Property::F64Array(arr) => {
-                                uv.extend(arr);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
                 _ => {}
             }
         }
