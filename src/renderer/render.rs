@@ -347,6 +347,7 @@ impl Renderer {
         textures.insert("textures/wall.jpg".to_string(), TextureObject::create("textures/wall.jpg", &init));
         textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
         textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
+        textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
 
         let vertex_buffer = Vec::new();
         let uniform_bind_group = Vec::new();

@@ -4,7 +4,7 @@ pub mod interract;
 
 use world::object::Object;
 
-use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse}};
+use crate::world::{object::ObjectType, objects::fbx_parser::parse};
 
 fn main() {
     let mut world = world::world::create_world();
@@ -32,7 +32,7 @@ fn main() {
         renderer::vertex::create_vertices(table.0, table.2, table.3, table.1)
     );
     table_object.set_texture("textures/table.png");
-    world.add_object(table_object);
+    world.add_object(table_object);*/
 
     let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0), (0.0, 0.0, 0.0));
     let mut ground_object = Object::create(
@@ -50,7 +50,7 @@ fn main() {
     niko_object.set_texture("textures/niko.png");
     world.add_object(niko_object);
 
-    let wall_1 = cube::create_cube((0.0, 2.5, 5.0), (5.0, 0.5, 0.5));
+    /*let wall_1 = cube::create_cube((0.0, 2.5, 5.0), (5.0, 0.5, 0.5));
     let mut wall_1_object = Object::create(
         ObjectType::Cube,
         renderer::vertex::create_vertices(wall_1.0, wall_1.2, wall_1.3, wall_1.1)
@@ -90,11 +90,12 @@ fn main() {
     test_object.set_displacement("textures/ground_displacement.png");
     world.add_object(test_object);*/
 
-    let test = parse("models/SELESTIA.fbx", (0.0, 3.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
-    let test_object = Object::create(
+    let test = parse("models/SELESTIA.fbx", (3.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
+    let mut test_object = Object::create(
         ObjectType::Mesh,
         renderer::vertex::create_vertices(test.0, test.2, test.3, test.1)
     );
+    test_object.set_texture("textures/Selestia_costume.png");
     world.add_object(test_object);
 
     /*let tablet = parse("models/niko.fbx", (0.0, 3.0, 0.0), (0.5, 0.5, 0.5), (0.0, 0.0, 0.0));

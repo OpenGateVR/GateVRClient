@@ -31,13 +31,6 @@ struct Connection {
     to: i64,
 }
 
-#[derive(Debug)]
-struct Object {
-    name: String,
-    mesh: Mesh,
-    transform: Transform,
-}
-
 fn rotate_x(v: [f64; 3], angle: f64) -> [f64; 3] {
     let (s, c) = angle.sin_cos();
     [
@@ -279,6 +272,7 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 if connection.from == mesh.id {
                     if let Some(transform_found) = transforms.get(&connection.to) {
                         transform = transform_found;
+                        println!("{}", transform.name);
                     }
                 }
             }
@@ -317,9 +311,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
 
             for tri in triangles {
                 let mut v = [
-                    mesh.vertices[tri[0]*3] * scale.0,
-                    mesh.vertices[tri[0]*3+1] * scale.2,
-                    mesh.vertices[tri[0]*3+2] * scale.1,
+                    mesh.vertices[tri[0]*3] * scale.0 * transform.scaling.0,
+                    mesh.vertices[tri[0]*3+1] * scale.2 * transform.scaling.2,
+                    mesh.vertices[tri[0]*3+2] * scale.1 * transform.scaling.1,
                 ];
 
                 v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
@@ -340,9 +334,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 colors.push([1.0, 1.0, 1.0]);
                 
                 let mut v = [
-                    mesh.vertices[tri[1]*3] * scale.0,
-                    mesh.vertices[tri[1]*3+1] * scale.2,
-                    mesh.vertices[tri[1]*3+2] * scale.1,
+                    mesh.vertices[tri[1]*3] * scale.0 * transform.scaling.0,
+                    mesh.vertices[tri[1]*3+1] * scale.2 * transform.scaling.2,
+                    mesh.vertices[tri[1]*3+2] * scale.1 * transform.scaling.1,
                 ];
 
                 v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
@@ -363,9 +357,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 colors.push([1.0, 1.0, 1.0]);
 
                 let mut v = [
-                    mesh.vertices[tri[2]*3] * scale.0,
-                    mesh.vertices[tri[2]*3+1] * scale.2,
-                    mesh.vertices[tri[2]*3+2] * scale.1,
+                    mesh.vertices[tri[2]*3] * scale.0 * transform.scaling.0,
+                    mesh.vertices[tri[2]*3+1] * scale.2 * transform.scaling.2,
+                    mesh.vertices[tri[2]*3+2] * scale.1 * transform.scaling.1,
                 ];
 
                 v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
