@@ -53,12 +53,6 @@ pub fn create_plane_with_uv(position: (f64, f64, f64), scale: (f64, f64, f64), f
     vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, position.2]);
     vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, position.2]);
 
-    /*uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-    uvs.push([0.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
-    uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);*/
     uvs.push([from.0, to.1]);
     uvs.push([to.0, to.1]);
     uvs.push([from.0, from.1]);

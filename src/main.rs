@@ -6,7 +6,8 @@ pub mod setup;
 use world::object::Object;
 
 use crate::setup::fonts::load_font_uvs;
-use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse, plane_atlas}};
+use crate::world::objects::text;
+use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse}};
 
 fn main() {
     let mut world = world::world::create_world();
@@ -69,7 +70,7 @@ fn main() {
     figure_object.set_position((0.0, 3.0, 0.0));
     world.add_object(figure_object);
 
-    let tablet = cube::create_cube((0.0, 0.0, 0.0), (0.5, 0.4, 0.1));
+    let tablet = cube::create_cube((0.0, 0.0, 0.0), (0.5, 0.4, 0.01));
     let mut tablet_object = Object::create(
         ObjectType::TabletMenu,
         renderer::vertex::create_vertices(tablet.0, tablet.2, tablet.3, tablet.1)
@@ -79,18 +80,16 @@ fn main() {
     world.add_object(tablet_object);
 
     let font_uvs = load_font_uvs("fonts/NotoSansJP.ttf");
-    if let Some(character_bounds) = font_uvs.get("a") {
-        let letter = plane_atlas::create_plane_with_uv(
-            (0.0, 0.0, -0.11), (0.3, 0.3, 1.0), 
-            (character_bounds.0, character_bounds.1), (character_bounds.2, character_bounds.3)
-        );
-        let mut letter_object = Object::create(
-            ObjectType::TabletMenu,
-            renderer::vertex::create_vertices(letter.0, letter.2, letter.3, letter.1)
-        );
-        letter_object.set_texture("fonts/NotoSansJP.ttf");
-        world.add_object(letter_object);
-    }
+    let sentence = text::create_plane_with_text(
+        (-0.4, 0.3, -0.02), (0.03, 0.03, 1.0), 
+        font_uvs, "goodbye :C"
+    );
+    let mut sentence_object = Object::create(
+        ObjectType::TabletMenu,
+        renderer::vertex::create_vertices(sentence.0, sentence.2, sentence.3, sentence.1)
+    );
+    sentence_object.set_texture("fonts/NotoSansJP.ttf");
+    world.add_object(sentence_object);
 
     renderer::setup::start_engine(world);
 }
