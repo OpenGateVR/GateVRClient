@@ -15,6 +15,8 @@ pub fn start_engine(world: World) {
 
     let mut keys = [false; 6]; // keys: W A S D
     let mut mouse = [0.0; 2]; // mouse movement x and y
+
+    let mut menu_tablet_state = 0;
     
     renderer.set_objects(&world);
 
@@ -73,12 +75,25 @@ pub fn start_engine(world: World) {
                                     &VirtualKeyCode::D => { keys[3] = true }
                                     &VirtualKeyCode::Space => { keys[4] = true }
                                     &VirtualKeyCode::Escape | &VirtualKeyCode::LWin | &VirtualKeyCode::RWin => {
-                                        keys[5] = true;
-                                        mouse_locked = false;
-                                        if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
-                                            eprintln!("Failed to unlock the cursor: {:?}", err);
+                                        if menu_tablet_state == 0 {
+                                            menu_tablet_state = 2;
+                                            mouse_locked = false;
+                                            if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::None) {
+                                                eprintln!("Failed to unlock the cursor: {:?}", err);
+                                            }
+                                            window.set_cursor_visible(true);
+                                        } else if menu_tablet_state == 1 {
+                                            menu_tablet_state = 3;
+                                            mouse_locked = true;
+                                            if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
+                                                eprintln!("Failed to lock the cursor: {:?}", err);
+                                            }
+                                            window.set_cursor_visible(false);
+                                            let window_size = window.inner_size();
+                                            let center_x = window_size.width as f64 / 2.0;
+                                            let center_y = window_size.height as f64 / 2.0;
+                                            window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
                                         }
-                                        window.set_cursor_visible(true);
                                     }
                                     _ => {}
                                 }
@@ -90,7 +105,6 @@ pub fn start_engine(world: World) {
                                     &VirtualKeyCode::S => { keys[2] = false }
                                     &VirtualKeyCode::D => { keys[3] = false }
                                     &VirtualKeyCode::Space => { keys[4] = false }
-                                    &VirtualKeyCode::Escape => { keys[5] = false }
                                     _ => {}
                                 }
                             }
@@ -126,7 +140,12 @@ pub fn start_engine(world: World) {
                 let now = std::time::Instant::now();
                 let dt = now - render_start_time;
 
-                renderer.update(dt, keys, mouse);
+                renderer.update(dt, keys, mouse, menu_tablet_state);
+                if menu_tablet_state == 2 {
+                    menu_tablet_state = 1;
+                } else if menu_tablet_state == 3 {
+                    menu_tablet_state = 0;
+                }
 
                 match renderer.render() {
                     Ok(_) => {}

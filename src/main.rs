@@ -67,7 +67,7 @@ fn main() {
     figure_object.set_position((0.0, 3.0, 0.0));
     world.add_object(figure_object);
 
-    let tablet = cube::create_cube((0.0, 0.0, 0.0), (1.0, 1.0, 0.1));
+    let tablet = cube::create_cube((0.0, 0.0, 0.0), (0.5, 0.4, 0.1));
     let mut tablet_object = Object::create(
         ObjectType::TabletMenu,
         renderer::vertex::create_vertices(tablet.0, tablet.2, tablet.3, tablet.1)

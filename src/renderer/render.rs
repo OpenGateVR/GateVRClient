@@ -394,7 +394,7 @@ impl Renderer {
             self.project_mat = transforms::create_projection(new_size.width as f32 / new_size.height as f32);
         }
     }
-    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 6], mouse: [f64; 2]) {
+    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 6], mouse: [f64; 2], menu_tablet_state: usize) {
         //self.camera_rotation.1 = dt.as_secs_f32();
         let current_time = std::time::Instant::now();
         let mut frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
@@ -441,12 +441,40 @@ impl Renderer {
         self.camera_position.1 += self.camera_acceleration_walking.1 * 4.0 * frame_time;
         self.camera_position.2 += self.camera_acceleration_walking.2 * 4.0 * frame_time;
 
-        if keys[5] {
+        if menu_tablet_state == 2 {
             for i in 0..self.objects.len() {
                 if self.objects[i].get_object_type() == ObjectType::TabletMenu {
                     let model_mat = transforms::create_transforms(
-                        [self.camera_position.0 + forward.x, self.camera_position.1 + forward.y, self.camera_position.2 + forward.z], 
-                        [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+                        [
+                            self.camera_position.0 + forward.x * 2.0, 
+                            self.camera_position.1 + forward.y * 2.0, 
+                            self.camera_position.2 + forward.z * 2.0
+                            ], 
+                        [
+                            -self.camera_rotation.0, 
+                            -self.camera_rotation.1 + std::f32::consts::FRAC_PI_2, 
+                            -self.camera_rotation.2
+                            ], [1.0, 1.0, 1.0]
+                    );
+                    let normal_mat = (model_mat.invert().unwrap()).transpose();
+
+                    let model_ref:&[f32; 16] = model_mat.as_ref();
+                    let normal_ref:&[f32; 16] = normal_mat.as_ref();
+
+                    self.init.queue.write_buffer(&self.model_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+                    self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
+                }
+            }
+        } else if menu_tablet_state == 3 {
+            for i in 0..self.objects.len() {
+                if self.objects[i].get_object_type() == ObjectType::TabletMenu {
+                    let model_mat = transforms::create_transforms(
+                        [0.0, -10.0, 0.0], 
+                        [
+                            -self.camera_rotation.0, 
+                            -self.camera_rotation.1 + std::f32::consts::FRAC_PI_2, 
+                            -self.camera_rotation.2
+                            ], [1.0, 1.0, 1.0]
                     );
                     let normal_mat = (model_mat.invert().unwrap()).transpose();
 
