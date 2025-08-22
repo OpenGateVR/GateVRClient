@@ -4,7 +4,7 @@ pub mod interract;
 
 use world::object::Object;
 
-use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse}};
+use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse, plane_atlas}};
 
 fn main() {
     let mut world = world::world::create_world();
@@ -75,6 +75,14 @@ fn main() {
     tablet_object.set_position((0.0, -10.0, 0.0));
     tablet_object.set_texture("textures/wall.jpg");
     world.add_object(tablet_object);
+
+    let letter = plane_atlas::create_plane((-3.0, 5.0, 0.0), (1.0, 1.0, 1.0), (8.0, 8.0), 3.0);
+    let mut letter_object = Object::create(
+        ObjectType::Cube,
+        renderer::vertex::create_vertices(letter.0, letter.2, letter.3, letter.1)
+    );
+    letter_object.set_texture("textures/atlas.png");
+    world.add_object(letter_object);
 
     renderer::setup::start_engine(world);
 }
