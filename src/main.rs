@@ -76,9 +76,9 @@ fn main() {
     tablet_object.set_texture("textures/wall.jpg");
     world.add_object(tablet_object);
 
-    let letter = plane_atlas::create_plane((-3.0, 5.0, 0.0), (1.0, 1.0, 1.0), (8.0, 8.0), 3.0);
+    let letter = plane_atlas::create_plane((0.0, 0.0, -0.11), (0.3, 0.3, 1.0), (8.0, 8.0), 3.0);
     let mut letter_object = Object::create(
-        ObjectType::Cube,
+        ObjectType::TabletMenu,
         renderer::vertex::create_vertices(letter.0, letter.2, letter.3, letter.1)
     );
     letter_object.set_texture("textures/atlas.png");

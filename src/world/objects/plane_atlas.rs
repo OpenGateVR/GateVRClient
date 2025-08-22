@@ -7,12 +7,12 @@ pub fn create_plane(position: (f64, f64, f64), scale: (f64, f64, f64), atlas_siz
     let atlas_width = atlas_size.0;
     let atlas_height = atlas_size.1;
 
-    vertices.push([ position.0, -1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
-    vertices.push([ position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
-    vertices.push([ position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
-    vertices.push([ position.0,  1.0 * scale.1 + position.1,  1.0 * scale.2 + position.2]);
-    vertices.push([ position.0, -1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
-    vertices.push([ position.0,  1.0 * scale.1 + position.1, -1.0 * scale.2 + position.2]);
+    vertices.push([ 1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, position.2]);
+    vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, position.2]);
+    vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, position.2]);
+    vertices.push([ 1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, position.2]);
+    vertices.push([-1.0 * scale.0 - position.0, -1.0 * scale.1 + position.1, position.2]);
+    vertices.push([-1.0 * scale.0 - position.0,  1.0 * scale.1 + position.1, position.2]);
 
     let uv_x = (atlas_index as f32 % atlas_width).floor();
     let uv_y = (atlas_index as f32 / atlas_height).floor();
@@ -23,12 +23,12 @@ pub fn create_plane(position: (f64, f64, f64), scale: (f64, f64, f64), atlas_siz
     uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 1.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
     uvs.push([1.0 / atlas_width + 1.0 / atlas_width * (uv_x), 0.0 / atlas_height + 1.0 / atlas_height * (uv_y)]);
 
-    normals.push([1, 0, 0]);
-    normals.push([1, 0, 0]);
-    normals.push([1, 0, 0]);
-    normals.push([1, 0, 0]);
-    normals.push([1, 0, 0]);
-    normals.push([1, 0, 0]);
+    normals.push([0, 0, -1]);
+    normals.push([0, 0, -1]);
+    normals.push([0, 0, -1]);
+    normals.push([0, 0, -1]);
+    normals.push([0, 0, -1]);
+    normals.push([0, 0, -1]);
 
     colors.push([1.0, 1.0, 1.0]);
     colors.push([1.0, 1.0, 1.0]);
