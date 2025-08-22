@@ -14,7 +14,7 @@ struct Mesh {
     indices: Vec<i32>,
     uv: Vec<f64>,
     uv_indices: Vec<i32>,
-    normals: Vec<f64>,
+    _normals: Vec<f64>,
     id: i64
 }
 
@@ -171,7 +171,7 @@ fn traverse_nodes(node: &Node) -> Vec<Mesh> {
             indices,
             uv,
             uv_indices,
-            normals,
+            _normals: normals,
             id
         });
     }

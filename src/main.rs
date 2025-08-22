@@ -1,9 +1,11 @@
 pub mod renderer;
 pub mod world;
 pub mod interract;
+pub mod setup;
 
 use world::object::Object;
 
+use crate::setup::fonts::load_font_uvs;
 use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse, plane_atlas}};
 
 fn main() {
@@ -76,13 +78,19 @@ fn main() {
     tablet_object.set_texture("textures/wall.jpg");
     world.add_object(tablet_object);
 
-    let letter = plane_atlas::create_plane((0.0, 0.0, -0.11), (0.3, 0.3, 1.0), (8.0, 8.0), 3.0);
-    let mut letter_object = Object::create(
-        ObjectType::TabletMenu,
-        renderer::vertex::create_vertices(letter.0, letter.2, letter.3, letter.1)
-    );
-    letter_object.set_texture("textures/atlas.png");
-    world.add_object(letter_object);
+    let font_uvs = load_font_uvs("fonts/NotoSansJP.ttf");
+    if let Some(character_bounds) = font_uvs.get("a") {
+        let letter = plane_atlas::create_plane_with_uv(
+            (0.0, 0.0, -0.11), (0.3, 0.3, 1.0), 
+            (character_bounds.0, character_bounds.1), (character_bounds.2, character_bounds.3)
+        );
+        let mut letter_object = Object::create(
+            ObjectType::TabletMenu,
+            renderer::vertex::create_vertices(letter.0, letter.2, letter.3, letter.1)
+        );
+        letter_object.set_texture("fonts/NotoSansJP.ttf");
+        world.add_object(letter_object);
+    }
 
     renderer::setup::start_engine(world);
 }

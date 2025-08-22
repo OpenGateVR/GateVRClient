@@ -3,12 +3,13 @@ use winit::window::Window;
 use std::iter;
 use wgpu::BindGroup;
 use rust_embed::RustEmbed;
-use image::GenericImageView;
+use image::{DynamicImage, GenericImageView};
 use std::collections::HashMap;
 
 use crate::interract::raycast::raycast_grab;
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
+use crate::setup::fonts::load_font_atlas;
 use crate::world::object::{Object, ObjectType};
 use crate::world::world::World;
 
@@ -24,6 +25,35 @@ impl TextureObject {
         let texture_data = Assets::get(path).expect("Failed to load embedded texture");
         let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
         println!("loaded {}", path);
+        let texture_rgba = img.to_rgba8().to_vec();
+        let (width, height) = img.dimensions();
+        let texture_size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
+
+        let texture: wgpu::Texture = init.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Texture"),
+            size: texture_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+
+        Self {
+            texture,
+            texture_size,
+            texture_rgba,
+            texture_width: width,
+            texture_height: height
+        }
+    }
+
+    pub fn load_from_dynamic_image(img: DynamicImage, init: &transforms::InitWgpu) -> Self {
         let texture_rgba = img.to_rgba8().to_vec();
         let (width, height) = img.dimensions();
         let texture_size = wgpu::Extent3d {
@@ -288,8 +318,16 @@ impl Renderer {
                 targets: &[Some(wgpu::ColorTargetState {
                     format: init.config.format,
                     blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent::REPLACE,
-                        alpha: wgpu::BlendComponent::REPLACE,
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
                     }),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
@@ -337,6 +375,10 @@ impl Renderer {
         init.queue.write_buffer(&vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
 
         let mut textures: HashMap<String, TextureObject> = HashMap::new();
+
+        // create font atlasses
+        textures.insert("fonts/NotoSansJP.ttf".to_string(), TextureObject::load_from_dynamic_image(load_font_atlas("fonts/NotoSansJP.ttf"), &init));
+
         textures.insert("textures/atlas.png".to_string(), TextureObject::create("textures/atlas.png", &init));
         textures.insert("textures/wood.jpg".to_string(), TextureObject::create("textures/wood.jpg", &init));
         textures.insert("textures/table.png".to_string(), TextureObject::create("textures/table.png", &init));
