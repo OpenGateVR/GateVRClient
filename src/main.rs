@@ -5,8 +5,8 @@ pub mod setup;
 
 use world::object::Object;
 
-use crate::setup::fonts::load_font_uvs;
-use crate::world::objects::text;
+//use crate::setup::fonts::load_font_uvs;
+//use crate::world::objects::text;
 use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse}};
 
 fn main() {

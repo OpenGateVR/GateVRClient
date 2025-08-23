@@ -4,8 +4,6 @@ use fbx::Property;
 use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 
-use crate::world::objects::cube;
-
 #[derive(RustEmbed)]
 #[folder = "client_assets/"]
 struct Assets;
@@ -321,8 +319,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
             for connection in &connections {
                 if connection.from == mesh.id {
                     if let Some(transform_found) = transforms.get(&connection.to) {
+                        if transform_found.object == ObjectType::Bone { continue; }
                         transform = transform_found;
-                        //println!("Mesh: {}", transform.name);
+                        println!("Mesh: {}", transform.name);
                     }
                 }
             }
