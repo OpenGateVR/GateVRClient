@@ -4,6 +4,8 @@ use fbx::Property;
 use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 
+use crate::world::objects::cube;
+
 #[derive(RustEmbed)]
 #[folder = "client_assets/"]
 struct Assets;
@@ -18,13 +20,20 @@ struct Mesh {
     id: i64
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObjectType {
+    Mesh,
+    Bone
+}
+
 #[derive(Debug)]
 struct Transform {
     translation: (f64, f64, f64),
     rotation: (f64, f64, f64),
     scaling: (f64, f64, f64),
     name: String,
-    id: i64
+    id: i64,
+    object: ObjectType
 }
 
 struct Connection {
@@ -233,6 +242,12 @@ fn get_transform(node: &Node) -> Option<Transform> {
             }
         }
 
+        let node_type = match node.properties.get(2) {
+        Some(Property::String(s)) => s.as_str(),
+            _ => "",
+        };
+
+
         let id: i64;
         if let Some(id_found) = get_id(node) {
             id = id_found;
@@ -240,12 +255,18 @@ fn get_transform(node: &Node) -> Option<Transform> {
             id = 0;
         }
 
+        let mut object = ObjectType::Mesh;
+        if node_type == "LimbNode" {
+            object = ObjectType::Bone;
+        }
+
         return Some(Transform {
             translation,
             rotation,
             scaling,
             name,
-            id
+            id,
+            object
         });
     }
 
@@ -277,6 +298,15 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
         connections.extend(parse_connections(node));
     }
 
+    // map bones
+    /*for transform in &transforms {
+        for connection in &connections {
+            if &connection.from == transform.0 && transform.1.object == ObjectType::Bone {
+                println!("Bone from {} to {}", connection.from, connection.to);
+            }
+        }
+    }*/
+
     for node in &file.children {
         let meshes = traverse_nodes(node);
         for (index, mesh) in meshes.iter().enumerate() {
@@ -285,13 +315,14 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 rotation: (0.0, 0.0, 0.0),
                 scaling: (0.0, 0.0, 0.0),
                 name: "Unknown".to_string(),
-                id: 0
+                id: 0,
+                object: ObjectType::Bone
             };
             for connection in &connections {
                 if connection.from == mesh.id {
                     if let Some(transform_found) = transforms.get(&connection.to) {
                         transform = transform_found;
-                        println!("{}", transform.name);
+                        //println!("Mesh: {}", transform.name);
                     }
                 }
             }

@@ -85,15 +85,6 @@ pub fn load_font_uvs(path: &str) -> HashMap<String, (f32, f32, f32, f32)> {
             glyph_height as f32 / atlas_height as f32)
         );
 
-        println!(
-            "char '{}' -> UV: ({}, {}) to ({}, {})",
-            c,
-            x_offset as f32 / atlas_width as f32,
-            0.0,
-            (x_offset + glyph_width) as f32 / atlas_width as f32,
-            glyph_height as f32 / atlas_height as f32
-        );
-
         x_offset += glyph_width;
     }
 
