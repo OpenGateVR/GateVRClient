@@ -7,7 +7,7 @@ use world::object::Object;
 
 //use crate::setup::fonts::load_font_uvs;
 //use crate::world::objects::text;
-use crate::world::{object::ObjectType, objects::{cube, fbx_parser::parse}};
+use crate::world::{object::ObjectType, objects::fbx_parser::parse};
 
 fn main() {
     let mut world = world::world::create_world();
