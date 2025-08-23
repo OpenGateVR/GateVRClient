@@ -5,7 +5,7 @@ use image::{DynamicImage, Rgba, RgbaImage};
 use rust_embed::RustEmbed;
 
 #[derive(RustEmbed)]
-#[folder = "client_assets/"]
+#[folder = "assets/"]
 struct Assets;
 
 pub fn load_font_atlas(path: &str) -> DynamicImage {

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 
 #[derive(RustEmbed)]
-#[folder = "client_assets/"]
+#[folder = "assets/"]
 struct Assets;
 
 #[derive(Debug)]

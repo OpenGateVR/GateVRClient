@@ -84,7 +84,7 @@ impl TextureObject {
 }
 
 #[derive(RustEmbed)]
-#[folder = "client_assets/"]
+#[folder = "assets/"]
 struct Assets;
 
 pub struct Renderer {
