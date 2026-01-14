@@ -446,8 +446,8 @@ impl Renderer {
             frame_time = 5.0
         }
 
-        self.camera_rotation.1 -= mouse[0] as f32 * (frame_time * 0.1);
-        self.camera_rotation.0 += mouse[1] as f32 * (frame_time * 0.1);
+        self.camera_rotation.1 -= mouse[0] as f32 * (frame_time * 0.02);
+        self.camera_rotation.0 += mouse[1] as f32 * (frame_time * 0.02);
         self.camera_rotation.0 = self.camera_rotation.0.clamp(-std::f32::consts::FRAC_PI_2 / 1.01, std::f32::consts::FRAC_PI_2 / 1.01);
 
         let forward = Vector3::new(
@@ -479,9 +479,9 @@ impl Renderer {
             self.camera_acceleration_walking.2 -= frame_time * right[2];
         }
 
-        self.camera_position.0 += self.camera_acceleration_walking.0 * 4.0 * frame_time;
-        self.camera_position.1 += self.camera_acceleration_walking.1 * 4.0 * frame_time;
-        self.camera_position.2 += self.camera_acceleration_walking.2 * 4.0 * frame_time;
+        self.camera_position.0 += self.camera_acceleration_walking.0 * 1.0 * frame_time;
+        self.camera_position.1 += self.camera_acceleration_walking.1 * 1.0 * frame_time;
+        self.camera_position.2 += self.camera_acceleration_walking.2 * 1.0 * frame_time;
 
         if menu_tablet_state == 2 {
             for i in 0..self.objects.len() {
