@@ -82,7 +82,7 @@ fn main() {
     let font_uvs = load_font_uvs("fonts/NotoSansJP.ttf");
     let sentence = text::create_plane_with_text(
         (-0.4, 0.3, -0.02), (0.03, 0.03, 1.0), 
-        font_uvs, "goodbye :C"
+        &font_uvs, "goodbye :C"
     );
     let mut sentence_object = Object::create(
         ObjectType::TabletMenu,
@@ -90,6 +90,17 @@ fn main() {
     );
     sentence_object.set_texture("fonts/NotoSansJP.ttf");
     world.add_object(sentence_object);
+    let fps_label = text::create_plane_with_text(
+        (-0.4, -0.3, -0.02), (0.03, 0.03, 1.0), 
+        &font_uvs, "FPS: 0"
+    );
+    let mut fps_label_object = Object::create(
+        ObjectType::TabletMenu,
+        renderer::vertex::create_vertices(fps_label.0, fps_label.2, fps_label.3, fps_label.1)
+    );
+    fps_label_object.set_texture("fonts/NotoSansJP.ttf");
+    fps_label_object.set_tag("fps_label");
+    world.add_object(fps_label_object);
 
     renderer::setup::start_engine(world);
 }

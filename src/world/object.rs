@@ -21,7 +21,8 @@ pub struct Object {
     vertices: Vec<Vertex>,
     texture: String,
     displacement_texture: String,
-    movable: bool
+    movable: bool,
+    tag: String
 }
 impl Object {
     pub fn create(object_type: ObjectType, vertices: Vec<Vertex>) -> Self {
@@ -33,7 +34,8 @@ impl Object {
             vertices: vertices,
             texture: "textures/ground.jpg".to_string(),
             displacement_texture: "None".to_string(),
-            movable: false
+            movable: false,
+            tag: "unnamed".to_string()
         }
     }
 
@@ -49,6 +51,9 @@ impl Object {
     pub fn set_rotation_y(&mut self, rotation: f32) {
         self.rotation.1 = rotation;
     }
+    pub fn set_vertices(&mut self, vertices: Vec<Vertex>) {
+        self.vertices = vertices;
+    }
     pub fn set_texture(&mut self, texture: &str) {
         self.texture = texture.to_string()
     }
@@ -57,6 +62,9 @@ impl Object {
     }
     pub fn set_movable(&mut self, value: bool) {
         self.movable = value;
+    }
+    pub fn set_tag(&mut self, tag: &str) {
+        self.tag = tag.to_string();
     }
 
     pub fn get_vertices(&self) -> &Vec<Vertex> {
@@ -79,5 +87,8 @@ impl Object {
     }
     pub fn get_rotation(&self) -> (f32, f32, f32) {
         self.rotation
+    }
+    pub fn get_tag(&self) -> &str {
+        &self.tag
     }
 }
