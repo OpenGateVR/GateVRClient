@@ -586,7 +586,8 @@ impl Renderer {
 
         let current_time_updated = std::time::Instant::now();
         let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-
+        
+        // update ingame fps label when menu tablet is enabled
         if menu_tablet_state == 1 && self.frame % 60 == 0 {
             for (index, object) in self.objects.iter().enumerate() {
                 if object.get_tag() != "fps_label" { continue; }
