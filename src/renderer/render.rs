@@ -492,7 +492,8 @@ impl Renderer {
 
         if menu_tablet_state == 2 {
             for i in 0..self.objects.len() {
-                if self.objects[i].get_object_type() == ObjectType::TabletMenu {
+                let object_type = self.objects[i].get_object_type();
+                if object_type == ObjectType::TabletMenu || object_type == ObjectType::TabletMenuButton {
                     let model_mat = transforms::create_transforms(
                         [
                             self.camera_position.0 + forward.x * 2.0, 
@@ -516,7 +517,8 @@ impl Renderer {
             }
         } else if menu_tablet_state == 3 {
             for i in 0..self.objects.len() {
-                if self.objects[i].get_object_type() == ObjectType::TabletMenu {
+                let object_type = self.objects[i].get_object_type();
+                if object_type == ObjectType::TabletMenu || object_type == ObjectType::TabletMenuButton {
                     let model_mat = transforms::create_transforms(
                         [0.0, -10.0, 0.0], 
                         [

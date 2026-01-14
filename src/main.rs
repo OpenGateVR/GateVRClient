@@ -45,6 +45,14 @@ fn main() {
     ground_object.set_displacement("textures/ground_displacement.png");
     world.add_object(ground_object);
 
+    let ground_sphere = parse("models/sphere.fbx", (0.0, 4.0, 6.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
+    let mut ground_sphere_object = Object::create(
+        ObjectType::Mesh,
+        renderer::vertex::create_vertices(ground_sphere.0, ground_sphere.2, ground_sphere.3, ground_sphere.1)
+    );
+    ground_sphere_object.set_displacement("textures/ground_displacement.png");
+    world.add_object(ground_sphere_object);
+
     let niko = parse("models/niko.fbx", (0.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
     let mut niko_object = Object::create(
         ObjectType::Mesh,
@@ -90,6 +98,16 @@ fn main() {
     );
     sentence_object.set_texture("fonts/NotoSansJP.ttf");
     world.add_object(sentence_object);
+    let chat_button = text::create_plane_with_text(
+        (-0.4, 0.0, -0.02), (0.03, 0.03, 1.0), 
+        &font_uvs, "CHAT"
+    );
+    let mut chat_button_object = Object::create(
+        ObjectType::TabletMenuButton,
+        renderer::vertex::create_vertices(chat_button.0, chat_button.2, chat_button.3, chat_button.1)
+    );
+    chat_button_object.set_texture("fonts/NotoSansJP.ttf");
+    world.add_object(chat_button_object);
     let fps_label = text::create_plane_with_text(
         (-0.4, -0.3, -0.02), (0.03, 0.03, 1.0), 
         &font_uvs, "FPS: 0"
