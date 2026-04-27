@@ -10,7 +10,7 @@ use crate::interract::raycast::raycast_grab;
 use crate::renderer::transforms;
 use crate::renderer::vertex::Vertex;
 use crate::setup::fonts::load_font_atlas;
-use crate::world::object::{Object, ObjectType};
+use crate::world::object::ObjectType;
 use crate::world::world::World;
 
 pub struct TextureObject {
@@ -112,8 +112,7 @@ pub struct Renderer {
     camera_rotation: (f32, f32, f32),
     camera_acceleration_walking: (f32, f32, f32),
 
-    objects: Vec<Object>,
-    cameras: Vec<Object>,
+    world: World,
     current_camera: usize
 }
 impl Renderer {
@@ -421,8 +420,7 @@ impl Renderer {
             camera_rotation,
             camera_acceleration_walking: (0.0, 0.0, 0.0),
 
-            objects: Vec::new(),
-            cameras: Vec::new(),
+            world: World::new(),
             current_camera: 0
         }
     }
@@ -484,13 +482,13 @@ impl Renderer {
         self.camera_position.2 += self.camera_acceleration_walking.2 * 4.0 * frame_time;
 
         if menu_tablet_state == 2 {
-            for i in 0..self.objects.len() {
-                if self.objects[i].get_object_type() == ObjectType::TabletMenu {
+            for i in 0..self.world.get_objects().len() {
+                if self.world.get_objects()[i].get_object_type() == ObjectType::TabletMenu {
                     let model_mat = transforms::create_transforms(
                         [
-                            self.camera_position.0 + forward.x * 2.0, 
-                            self.camera_position.1 + forward.y * 2.0, 
-                            self.camera_position.2 + forward.z * 2.0
+                            self.camera_position.0 + forward.x, 
+                            self.camera_position.1 + forward.y, 
+                            self.camera_position.2 + forward.z
                             ], 
                         [
                             -self.camera_rotation.0, 
@@ -508,8 +506,8 @@ impl Renderer {
                 }
             }
         } else if menu_tablet_state == 3 {
-            for i in 0..self.objects.len() {
-                if self.objects[i].get_object_type() == ObjectType::TabletMenu {
+            for i in 0..self.world.get_objects().len() {
+                if self.world.get_objects()[i].get_object_type() == ObjectType::TabletMenu {
                     let model_mat = transforms::create_transforms(
                         [0.0, -10.0, 0.0], 
                         [
@@ -531,8 +529,8 @@ impl Renderer {
 
         // update skybox positions
         if self.frame % 10 == 0 {
-            for i in 0..self.objects.len() {
-                if self.objects[i].get_object_type() == ObjectType::Skybox {
+            for i in 0..self.world.get_objects().len() {
+                if self.world.get_objects()[i].get_object_type() == ObjectType::Skybox {
                     let model_mat = transforms::create_transforms(
                         [self.camera_position.0, self.camera_position.1, self.camera_position.2], 
                         [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
@@ -548,10 +546,10 @@ impl Renderer {
                 }
             }
 
-            let grabbable_object_index = raycast_grab(&mut self.objects, self.camera_position, forward, 5);
+            let grabbable_object_index = raycast_grab(self.world.get_objects(), self.camera_position, forward, 5);
             if grabbable_object_index > 0 {
-                let y_rotation = self.objects[grabbable_object_index].get_rotation().1;
-                self.objects[grabbable_object_index].set_rotation_y(y_rotation + 0.1);
+                let y_rotation = self.world.get_objects()[grabbable_object_index].get_rotation().1;
+                self.world.objects[grabbable_object_index].set_rotation_y(y_rotation + 0.1);
                 let model_mat = transforms::create_transforms(
                     [0.0, 0.0, 0.0], 
                     [0.0, y_rotation + 0.1, 0.0], [1.0, 1.0, 1.0]
@@ -587,16 +585,14 @@ impl Renderer {
         self.frame += 1;
     }
 
-    // replace all objects in the world
-    pub fn set_objects(&mut self, world: &World) {
-        let objects = world.get_objects().clone();
-        let cameras = world.get_cameras().clone();
+    pub fn set_world(&mut self, world: World) {
+        self.world = world;
 
         self.vertex_buffer.clear();
         self.uniform_bind_group.clear();
         self.num_vertices.clear();
 
-        for object in &objects {
+        for object in self.world.get_objects() {
             let vertices = object.get_vertices();
 
             if let Some(texture) = self.textures.get(object.get_texture()) {
@@ -655,15 +651,12 @@ impl Renderer {
             }
         }
 
-        self.objects = objects;
-        self.cameras = cameras;
-
-        if self.cameras.len() > self.current_camera {
-            let object_position = self.cameras[self.current_camera].get_position();
+        if self.world.get_cameras().len() > self.current_camera {
+            let object_position = self.world.get_camera(self.current_camera).get_position();
             self.camera_position.0 = object_position.0 as f32;
             self.camera_position.1 = object_position.1 as f32;
             self.camera_position.2 = object_position.2 as f32;
-            self.camera_rotation = self.cameras[self.current_camera].get_rotation();
+            self.camera_rotation = self.world.get_camera(self.current_camera).get_rotation();
         }
     }
 

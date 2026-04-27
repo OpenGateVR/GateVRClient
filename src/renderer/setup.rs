@@ -18,7 +18,7 @@ pub fn start_engine(world: World) {
 
     let mut menu_tablet_state = 0;
     
-    renderer.set_objects(&world);
+    renderer.set_world(world);
 
     event_loop.run(move |event, _, control_flow| {
         mouse[0] -= mouse[0] * 0.1;

@@ -1,7 +1,7 @@
 use crate::world::object::{Object, ObjectType};
 
 pub struct World {
-    objects: Vec<Object>,
+    pub objects: Vec<Object>,
     cameras: Vec<Object>
 }
 impl World {
@@ -20,8 +20,15 @@ impl World {
         }
     }
 
+    pub fn get_object(&self, index: usize) -> &Object {
+        &self.objects[index]
+    }
     pub fn get_objects(&self) -> &Vec<Object> {
         &self.objects
+    }
+
+    pub fn get_camera(&self, index: usize) -> &Object {
+        &self.cameras[index]
     }
     pub fn get_cameras(&self) -> &Vec<Object> {
         &self.cameras

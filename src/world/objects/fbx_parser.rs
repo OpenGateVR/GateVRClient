@@ -18,6 +18,12 @@ struct Mesh {
     id: i64
 }
 
+#[derive(Debug)]
+struct Material {
+    id: i64,
+    name: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ObjectType {
     Mesh,
@@ -271,19 +277,44 @@ fn get_transform(node: &Node) -> Option<Transform> {
     None
 }
 
-pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rotation: (f64, f64, f64)) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
+fn parse_materials(node: &Node) -> HashMap<i64, Material> {
+    let mut materials = HashMap::new();
+
+    if node.name == "Objects" {
+        for child in &node.children {
+            if child.name == "Material" {
+                let id = get_id(child).unwrap_or(0);
+
+                let name = match child.properties.get(1) {
+                    Some(Property::String(s)) => s.clone(),
+                    _ => "Unnamed".to_string(),
+                };
+
+                println!("MATERIAL: {} {}", name, id);
+
+                materials.insert(id, Material { id, name });
+            }
+        }
+    }
+
+    materials
+}
+
+pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rotation: (f64, f64, f64)) -> Vec<(Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
     let mut reader = BufReader::new(cursor);
     let file = File::read_from(&mut reader).expect("Failed to parse FBX file");
 
-    let mut vertices: Vec<[f64; 3]> = Vec::new();
-    let mut normals: Vec<[i8; 3]> = Vec::new();
-    let mut colors: Vec<[f32; 3]> = Vec::new();
-    let mut uvs: Vec<[f32; 2]> = Vec::new();
+    let mut mesh_data: Vec<(Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> = Vec::new();
 
     let mut transforms = HashMap::new();
+    let mut materials = HashMap::new();
     let mut connections = Vec::new();
+
+    for node in &file.children {
+        materials.extend(parse_materials(node));
+    }
 
     for node in &file.children {
         if node.name == "Objects" {
@@ -305,6 +336,8 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
         }
     }*/
 
+    let mut selected_material = "default";
+
     for node in &file.children {
         let meshes = traverse_nodes(node);
         for (index, mesh) in meshes.iter().enumerate() {
@@ -316,8 +349,10 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 id: 0,
                 object: ObjectType::Bone
             };
+            let mut model_id = None;
             for connection in &connections {
                 if connection.from == mesh.id {
+                    model_id = Some(connection.to);
                     if let Some(transform_found) = transforms.get(&connection.to) {
                         if transform_found.object == ObjectType::Bone { continue; }
                         transform = transform_found;
@@ -325,10 +360,29 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                     }
                 }
             }
+            let mut material = None;
+
+            if let Some(model_id) = model_id {
+                for connection in &connections {
+                    if connection.to == model_id {
+                        if let Some(mat) = materials.get(&connection.from) {
+                            material = Some(mat);
+                        }
+                    }
+                }
+            }
+
+            if let Some(mat) = material {
+                selected_material = &mat.name;
+                println!("mesh uses material: {}", mat.name);
+            }
 
             let mut triangles = vec![];
             let mut current_polygon = vec![];
             let mut current_uvs = vec![];
+
+            mesh_data.push((Vec::new(), Vec::new(), Vec::new(), Vec::new(), selected_material.to_string()));
+            let mesh_data_index = mesh_data.len() - 1;
 
             for (index_uv, i) in mesh.indices.iter().enumerate() {
                 let index = if *i < 0 {
@@ -371,14 +425,14 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 v[0] += position.0 + transform.translation.0;
                 v[1] += position.1 + transform.translation.1;
                 v[2] += position.2 + transform.translation.2;
-
-                vertices.push(v);
-                uvs.push([
+                
+                mesh_data[mesh_data_index].0.push(v);
+                mesh_data[mesh_data_index].3.push([
                     mesh.uv[tri[3] * 2] as f32, 
                     1.0 - mesh.uv[tri[3] * 2 + 1] as f32
                 ]);
-                normals.push([0, 1, 0]);
-                colors.push([1.0, 1.0, 1.0]);
+                mesh_data[mesh_data_index].1.push([0, 1, 0]);
+                mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
                 
                 let mut v = [
                     mesh.vertices[tri[1]*3] * scale.0 * transform.scaling.0,
@@ -395,13 +449,13 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 v[1] += position.1 + transform.translation.1;
                 v[2] += position.2 + transform.translation.2;
 
-                vertices.push(v);
-                uvs.push([
+                mesh_data[mesh_data_index].0.push(v);
+                mesh_data[mesh_data_index].3.push([
                     mesh.uv[tri[4] * 2] as f32, 
                     1.0 - mesh.uv[tri[4] * 2 + 1] as f32
                 ]);
-                normals.push([0, 1, 0]);
-                colors.push([1.0, 1.0, 1.0]);
+                mesh_data[mesh_data_index].1.push([0, 1, 0]);
+                mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
 
                 let mut v = [
                     mesh.vertices[tri[2]*3] * scale.0 * transform.scaling.0,
@@ -418,16 +472,16 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 v[1] += position.1 + transform.translation.1;
                 v[2] += position.2 + transform.translation.2;
 
-                vertices.push(v);
-                uvs.push([
+                mesh_data[mesh_data_index].0.push(v);
+                mesh_data[mesh_data_index].3.push([
                     mesh.uv[tri[5] * 2] as f32, 
                     1.0 - mesh.uv[tri[5] * 2 + 1] as f32
                 ]);
-                normals.push([0, 1, 0]);
-                colors.push([1.0, 1.0, 1.0]);
+                mesh_data[mesh_data_index].1.push([0, 1, 0]);
+                mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
             }
         }
     }
 
-    (vertices, uvs, normals, colors)
+    mesh_data
 }

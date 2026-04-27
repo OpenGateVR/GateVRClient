@@ -9,7 +9,7 @@ pub fn distance(position_1: (f64, f64, f64), position_2: (f64, f64, f64)) -> f64
 }
 
 // the function to get the nearest grabbable object
-pub fn raycast_grab(objects: &mut Vec<Object>, position: (f32, f32, f32), direction: cgmath::Vector3<f32>, max_distance: usize) -> usize {
+pub fn raycast_grab(objects: &Vec<Object>, position: (f32, f32, f32), direction: cgmath::Vector3<f32>, max_distance: usize) -> usize {
     let mut position_checking: (f64, f64, f64) = (0.0, 0.0, 0.0);
     position_checking.0 = (position.0 + direction.x / 10.0) as f64;
     position_checking.1 = (position.1 + direction.y / 10.0) as f64;
