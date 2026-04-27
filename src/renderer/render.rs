@@ -10,7 +10,7 @@ use crate::interract::raycast::raycast_grab;
 use crate::renderer::{transforms, vertex};
 use crate::renderer::vertex::Vertex;
 use crate::setup::fonts::{load_font_atlas, load_font_uvs};
-use crate::world::object::{Object, ObjectType};
+use crate::world::object::ObjectType;
 use crate::world::objects::text;
 use crate::world::world::World;
 

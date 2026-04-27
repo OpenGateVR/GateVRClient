@@ -20,7 +20,7 @@ struct Mesh {
 
 #[derive(Debug)]
 struct Material {
-    id: i64,
+    _id: i64,
     name: String,
 }
 
@@ -292,7 +292,7 @@ fn parse_materials(node: &Node) -> HashMap<i64, Material> {
 
                 println!("MATERIAL: {} {}", name, id);
 
-                materials.insert(id, Material { id, name });
+                materials.insert(id, Material { _id: id, name });
             }
         }
     }
