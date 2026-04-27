@@ -16,6 +16,8 @@ pub fn start_engine(world: World) {
     let mut keys = [false; 6]; // keys: W A S D
     let mut mouse = [0.0; 2]; // mouse movement x and y
 
+    let mut use_confined = false;
+
     let mut menu_tablet_state = 0;
     
     renderer.set_world(world);
@@ -24,6 +26,12 @@ pub fn start_engine(world: World) {
         mouse[0] -= mouse[0] * 0.1;
         mouse[1] -= mouse[1] * 0.1;
         match event {
+            Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
+                if mouse_locked && !use_confined {
+                    mouse[0] -= delta.0;
+                    mouse[1] -= delta.1;
+                }
+            }
             Event::WindowEvent {
                 ref event,
                 window_id,
@@ -46,12 +54,13 @@ pub fn start_engine(world: World) {
                         renderer.resize(**new_inner_size);
                     }
                     WindowEvent::CursorMoved { position, .. } => {
+                        if !use_confined { return; }
                         if mouse_locked {
                             let window_size = window.inner_size();
                             let center_x = window_size.width as f64 / 2.0;
                             let center_y = window_size.height as f64 / 2.0;
-                            mouse[0] = center_x - position.x;
-                            mouse[1] = center_y - position.y;
+                            mouse[0] += center_x - position.x;
+                            mouse[1] += center_y - position.y;
                             window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
                         } else {
                             mouse[0] = 0.0;
@@ -85,14 +94,21 @@ pub fn start_engine(world: World) {
                                         } else if menu_tablet_state == 1 {
                                             menu_tablet_state = 3;
                                             mouse_locked = true;
-                                            if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
-                                                eprintln!("Failed to lock the cursor: {:?}", err);
+                                            if !use_confined {
+                                                if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Locked) {
+                                                    eprintln!("Failed to lock the cursor: {:?}", err);
+                                                    use_confined = true;
+                                                }
+                                            } else {
+                                                if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
+                                                    eprintln!("Failed to lock the cursor: {:?}", err);
+                                                }
+                                                let window_size = window.inner_size();
+                                                let center_x = window_size.width as f64 / 2.0;
+                                                let center_y = window_size.height as f64 / 2.0;
+                                                window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
                                             }
                                             window.set_cursor_visible(false);
-                                            let window_size = window.inner_size();
-                                            let center_x = window_size.width as f64 / 2.0;
-                                            let center_y = window_size.height as f64 / 2.0;
-                                            window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
                                         }
                                     }
                                     _ => {}
@@ -116,14 +132,21 @@ pub fn start_engine(world: World) {
                                 match button {
                                     MouseButton::Left => {
                                         mouse_locked = true;
-                                        if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
-                                            eprintln!("Failed to lock the cursor: {:?}", err);
+                                        if !use_confined {
+                                            if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Locked) {
+                                                eprintln!("Failed to lock the cursor: {:?}", err);
+                                                use_confined = true;
+                                            }
+                                        } else {
+                                            if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
+                                                eprintln!("Failed to lock the cursor: {:?}", err);
+                                            }
+                                            let window_size = window.inner_size();
+                                            let center_x = window_size.width as f64 / 2.0;
+                                            let center_y = window_size.height as f64 / 2.0;
+                                            window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
                                         }
                                         window.set_cursor_visible(false);
-                                        let window_size = window.inner_size();
-                                        let center_x = window_size.width as f64 / 2.0;
-                                        let center_y = window_size.height as f64 / 2.0;
-                                        window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
                                     }
                                     _ => {}
                                 }

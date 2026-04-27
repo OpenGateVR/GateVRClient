@@ -33,7 +33,7 @@ fn vertex(p:[f64;3], n:[i8; 3], c:[f32; 3], u:[f32; 2]) -> Vertex {
 }
 
 // Convert object to list of vertices
-pub fn create_vertices(vertices: Vec<[f64; 3]>, normals: Vec<[i8; 3]>, colors: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>) -> Vec<Vertex> {
+pub fn create_vertices(vertices: &Vec<[f64; 3]>, normals: &Vec<[i8; 3]>, colors: &Vec<[f32; 3]>, uvs: &Vec<[f32; 2]>) -> Vec<Vertex> {
     let mut vertex_list: Vec<Vertex> = Vec::with_capacity(vertices.len());
     for i in 0..vertices.len() {
         vertex_list.push(vertex(vertices[i], normals[i], colors[i], uvs[i]));

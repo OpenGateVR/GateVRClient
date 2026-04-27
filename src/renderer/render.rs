@@ -7,10 +7,11 @@ use image::{DynamicImage, GenericImageView};
 use std::collections::HashMap;
 
 use crate::interract::raycast::raycast_grab;
-use crate::renderer::transforms;
+use crate::renderer::{transforms, vertex};
 use crate::renderer::vertex::Vertex;
-use crate::setup::fonts::load_font_atlas;
-use crate::world::object::ObjectType;
+use crate::setup::fonts::{load_font_atlas, load_font_uvs};
+use crate::world::object::{Object, ObjectType};
+use crate::world::objects::text;
 use crate::world::world::World;
 
 pub struct TextureObject {
@@ -106,6 +107,7 @@ pub struct Renderer {
     fragment_uniform_buffer: wgpu::Buffer,
 
     textures: HashMap<String, TextureObject>,
+    font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32)>>,
 
     // the client position and rotation
     camera_position: (f32, f32, f32),
@@ -390,6 +392,10 @@ impl Renderer {
         textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
         textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
 
+        let mut font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32)>> = HashMap::new();
+
+        font_maps.insert("NotoSansJP".to_string(), load_font_uvs("fonts/NotoSansJP.ttf"));
+
         let vertex_buffer = Vec::new();
         let uniform_bind_group = Vec::new();
         let num_vertices = Vec::new();
@@ -415,6 +421,7 @@ impl Renderer {
             fragment_uniform_buffer,
 
             textures,
+            font_maps,
 
             camera_position,
             camera_rotation,
@@ -444,8 +451,8 @@ impl Renderer {
             frame_time = 5.0
         }
 
-        self.camera_rotation.1 -= mouse[0] as f32 * (frame_time * 0.1);
-        self.camera_rotation.0 += mouse[1] as f32 * (frame_time * 0.1);
+        self.camera_rotation.1 -= mouse[0] as f32 * (frame_time * 0.02);
+        self.camera_rotation.0 += mouse[1] as f32 * (frame_time * 0.02);
         self.camera_rotation.0 = self.camera_rotation.0.clamp(-std::f32::consts::FRAC_PI_2 / 1.01, std::f32::consts::FRAC_PI_2 / 1.01);
 
         let forward = Vector3::new(
@@ -477,13 +484,14 @@ impl Renderer {
             self.camera_acceleration_walking.2 -= frame_time * right[2];
         }
 
-        self.camera_position.0 += self.camera_acceleration_walking.0 * 4.0 * frame_time;
-        self.camera_position.1 += self.camera_acceleration_walking.1 * 4.0 * frame_time;
-        self.camera_position.2 += self.camera_acceleration_walking.2 * 4.0 * frame_time;
+        self.camera_position.0 += self.camera_acceleration_walking.0 * 1.0 * frame_time;
+        self.camera_position.1 += self.camera_acceleration_walking.1 * 1.0 * frame_time;
+        self.camera_position.2 += self.camera_acceleration_walking.2 * 1.0 * frame_time;
 
         if menu_tablet_state == 2 {
             for i in 0..self.world.get_objects().len() {
-                if self.world.get_objects()[i].get_object_type() == ObjectType::TabletMenu {
+                let object_type = self.world.get_objects()[i].get_object_type();
+                if object_type == ObjectType::TabletMenu || object_type == ObjectType::TabletMenuButton {
                     let model_mat = transforms::create_transforms(
                         [
                             self.camera_position.0 + forward.x, 
@@ -507,7 +515,8 @@ impl Renderer {
             }
         } else if menu_tablet_state == 3 {
             for i in 0..self.world.get_objects().len() {
-                if self.world.get_objects()[i].get_object_type() == ObjectType::TabletMenu {
+                let object_type = self.world.get_objects()[i].get_object_type();
+                if object_type == ObjectType::TabletMenu || object_type == ObjectType::TabletMenuButton {
                     let model_mat = transforms::create_transforms(
                         [0.0, -10.0, 0.0], 
                         [
@@ -577,9 +586,26 @@ impl Renderer {
 
         let current_time_updated = std::time::Instant::now();
         let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-
-        if false {
-            println!("fps: {}", 1.0 / update_time);
+        
+        // update ingame fps label when menu tablet is enabled
+        if menu_tablet_state == 1 && self.frame % 60 == 0 {
+            for (index, object) in self.world.get_objects().iter().enumerate() {
+                if object.get_tag() != "fps_label" { continue; }
+                let fps_label = text::create_plane_with_text(
+                    (-0.4, -0.3, -0.02), (0.03, 0.03, 1.0), 
+                    &self.font_maps["NotoSansJP"], &format!("FPS: {}", (1.0 / update_time).round())
+                );
+                let vertices = vertex::create_vertices(&fps_label.0, &fps_label.2, &fps_label.3, &fps_label.1);
+                self.num_vertices[index] = vertices.len() as u32;
+                let vertex_buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("Vertex Buffer"),
+                    size: (size_of::<Vertex>() * vertices.len()) as u64,
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false
+                });
+                self.vertex_buffer[index] = vertex_buffer;
+                self.init.queue.write_buffer(&self.vertex_buffer[index], 0, bytemuck::cast_slice(&vertices));
+            }
         }
 
         self.frame += 1;
@@ -614,13 +640,13 @@ impl Renderer {
                 self.init.queue.write_buffer(&model_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
                 self.init.queue.write_buffer(&model_uniform_buffer, 64, bytemuck::cast_slice(normal_ref));
 
-                if let Some(textue_displacement) = self.textures.get(object.get_displacement()) {
+                if let Some(texture_displacement) = self.textures.get(object.get_displacement()) {
                     let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
                         &self.init, &self.uniform_bind_group_layout, 
                         &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                        &model_uniform_buffer, &textue_displacement.texture, textue_displacement.texture_size, 
-                        &textue_displacement.texture_rgba, 
-                        textue_displacement.texture_width, textue_displacement.texture_height,
+                        &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
+                        &texture_displacement.texture_rgba, 
+                        texture_displacement.texture_width, texture_displacement.texture_height,
                         &texture.texture, texture.texture_size, &texture.texture_rgba, 
                         texture.texture_width, texture.texture_height, vertices.len(),
                     );
@@ -630,13 +656,13 @@ impl Renderer {
 
                     self.num_vertices.push(vertices.len() as u32);
                     self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
-                } else if let Some(textue_displacement) = self.textures.get("textures/displacement.png") {
+                } else if let Some(texture_displacement) = self.textures.get("textures/displacement.png") {
                     let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
                         &self.init, &self.uniform_bind_group_layout, 
                         &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                        &model_uniform_buffer, &textue_displacement.texture, textue_displacement.texture_size, 
-                        &textue_displacement.texture_rgba, 
-                        textue_displacement.texture_width, textue_displacement.texture_height,
+                        &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
+                        &texture_displacement.texture_rgba, 
+                        texture_displacement.texture_width, texture_displacement.texture_height,
                         &texture.texture, texture.texture_size, &texture.texture_rgba, 
                         texture.texture_width, texture.texture_height, vertices.len(),
                     );

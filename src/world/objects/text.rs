@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub fn create_plane_with_text(position: (f64, f64, f64), scale: (f64, f64, f64), font_map: HashMap<String, (f32, f32, f32, f32)>, text: &str) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
+pub fn create_plane_with_text(position: (f64, f64, f64), scale: (f64, f64, f64), font_map: &HashMap<String, (f32, f32, f32, f32)>, text: &str) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
     let mut vertices: Vec<[f64; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
