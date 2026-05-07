@@ -68,7 +68,7 @@ fn main() {
         ObjectType::Mesh,
         renderer::vertex::create_vertices(&test)
     );
-    test_object.set_default_texture("textures/Selestia_costume.png");
+    test_object.add_material(Material{ texture: "textures/Selestia_costume.png".to_string() }, "Selestia_costumeMaterial");
     test_object.add_material(Material{ texture: "textures/Selestia_hair.png".to_string() }, "Selestia_hairMaterial");
     test_object.add_material(Material{ texture: "textures/Selestia_body.png".to_string() }, "Selestia_bodyMaterial");
     test_object.add_material(Material{ texture: "textures/Selestia_face.png".to_string() }, "Selestia_optionMaterial");
