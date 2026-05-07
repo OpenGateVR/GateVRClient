@@ -2,14 +2,20 @@ pub mod renderer;
 pub mod world;
 pub mod interract;
 pub mod setup;
+pub mod network;
 
 use world::object::Object;
+use std::alloc;
+use cap::Cap;
 
 use crate::setup::fonts::load_font_uvs;
 use crate::world::object::Material;
 use crate::world::objects::text;
 use crate::world::objects::cube;
 use crate::world::{object::ObjectType, objects::fbx_parser::parse};
+
+#[global_allocator]
+static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value());
 
 fn main() {
     let mut world = world::world::create_world();
@@ -103,6 +109,7 @@ fn main() {
     );
     sentence_object.set_default_texture("fonts/NotoSansJP.ttf");
     world.add_object(sentence_object);
+
     let chat_button = text::create_plane_with_text(
         (-0.4, 0.0, -0.02), (0.03, 0.03, 1.0), 
         &font_uvs, "CHAT"
@@ -113,8 +120,9 @@ fn main() {
     );
     chat_button_object.set_default_texture("fonts/NotoSansJP.ttf");
     world.add_object(chat_button_object);
+
     let fps_label = text::create_plane_with_text(
-        (-0.4, -0.3, -0.02), (0.03, 0.03, 1.0), 
+        (-0.4, -0.3, -0.02), (0.02, 0.02, 1.0), 
         &font_uvs, "FPS: 0"
     );
     let mut fps_label_object = Object::create(
@@ -124,6 +132,20 @@ fn main() {
     fps_label_object.set_default_texture("fonts/NotoSansJP.ttf");
     fps_label_object.set_tag("fps_label");
     world.add_object(fps_label_object);
+
+    let ram_label = text::create_plane_with_text(
+        (-0.4, -0.2, -0.02), (0.02, 0.02, 1.0), 
+        &font_uvs, "RAM: 0"
+    );
+    let mut ram_label_object = Object::create(
+        ObjectType::TabletMenu,
+        renderer::vertex::create_vertices(&ram_label)
+    );
+    ram_label_object.set_default_texture("fonts/NotoSansJP.ttf");
+    ram_label_object.set_tag("ram_label");
+    world.add_object(ram_label_object);
+
+    println!("Memory after startup: {} MB", ALLOCATOR.allocated() as f32 / 1000000.0);
 
     renderer::setup::start_engine(world);
 }

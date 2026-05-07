@@ -1,5 +1,9 @@
 use winit::{event::*, event_loop::{ControlFlow, EventLoop}};
-use crate::{renderer::render::Renderer, world::world::World};
+use std::sync::mpsc;
+use crate::{
+    network::users::{LocalUserUpdate, UsersUpdate, start_user_handler}, 
+    renderer::render::Renderer, world::world::World
+};
 
 // this will call the render class
 pub fn start_engine(world: World) {
@@ -8,7 +12,10 @@ pub fn start_engine(world: World) {
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title("GateVR");
 
-    let mut renderer = pollster::block_on(Renderer::new(&window));    
+    let (job_tx, job_rx) = mpsc::channel::<LocalUserUpdate>();
+    //let (result_tx, result_rx) = mpsc::channel::<UsersUpdate>();
+
+    let mut renderer = pollster::block_on(Renderer::new(&window, job_tx));    
     let render_start_time = std::time::Instant::now();
 
     let mut mouse_locked = false;
@@ -19,6 +26,8 @@ pub fn start_engine(world: World) {
     let mut use_confined = false;
 
     let mut menu_tablet_state = 0;
+
+    start_user_handler(job_rx);
     
     renderer.set_world(world);
 

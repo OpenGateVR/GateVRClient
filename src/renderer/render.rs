@@ -5,6 +5,7 @@ use wgpu::BindGroup;
 use rust_embed::RustEmbed;
 use image::{DynamicImage, GenericImageView};
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
 
 use crate::interract::raycast::raycast_grab;
 use crate::renderer::{transforms, vertex};
@@ -13,6 +14,8 @@ use crate::setup::fonts::{load_font_atlas, load_font_uvs};
 use crate::world::object::ObjectType;
 use crate::world::objects::text;
 use crate::world::world::World;
+use crate::network::users::{LocalUserUpdate, Transform};
+use crate::ALLOCATOR;
 
 pub struct TextureObject {
     texture: wgpu::Texture,
@@ -107,7 +110,7 @@ pub struct Renderer {
     fragment_uniform_buffer: wgpu::Buffer,
 
     textures: HashMap<String, TextureObject>,
-    font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32)>>,
+    font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32, f32)>>,
 
     // the client position and rotation
     camera_position: (f32, f32, f32),
@@ -115,7 +118,10 @@ pub struct Renderer {
     camera_acceleration_walking: (f32, f32, f32),
 
     world: World,
-    current_camera: usize
+    current_camera: usize,
+
+    // networking
+    job_tx: Sender<LocalUserUpdate>
 }
 impl Renderer {
     fn create_buffer_displacement(
@@ -205,7 +211,7 @@ impl Renderer {
             label: Some("Uniform Bind Group"),
         });
 
-        let max_buffer_size = size_of::<Vertex>() * vertex_num; // 8MB buffer
+        let max_buffer_size = size_of::<Vertex>() * vertex_num;
         let vertex_buffer = init.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
             size: max_buffer_size as u64,
@@ -216,7 +222,7 @@ impl Renderer {
         return (uniform_bind_group, vertex_buffer)
     }
 
-    pub async fn new(window: &Window) -> Self {
+    pub async fn new(window: &Window, job_tx: Sender<LocalUserUpdate>) -> Self {
         let init =  transforms::InitWgpu::init_wgpu(window).await;
 
         let camera_position: (f32, f32, f32) = (-10.0, 4.0, 0.0);
@@ -395,7 +401,7 @@ impl Renderer {
         textures.insert("textures/Selestia_body.png".to_string(), TextureObject::create("textures/Selestia_body.png", &init));
         textures.insert("textures/Selestia_face.png".to_string(), TextureObject::create("textures/Selestia_face.png", &init));
 
-        let mut font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32)>> = HashMap::new();
+        let mut font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32, f32)>> = HashMap::new();
 
         font_maps.insert("NotoSansJP".to_string(), load_font_uvs("fonts/NotoSansJP.ttf"));
 
@@ -431,7 +437,9 @@ impl Renderer {
             camera_acceleration_walking: (0.0, 0.0, 0.0),
 
             world: World::new(),
-            current_camera: 0
+            current_camera: 0,
+
+            job_tx
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -490,6 +498,13 @@ impl Renderer {
         self.camera_position.0 += self.camera_acceleration_walking.0 * 1.0 * frame_time;
         self.camera_position.1 += self.camera_acceleration_walking.1 * 1.0 * frame_time;
         self.camera_position.2 += self.camera_acceleration_walking.2 * 1.0 * frame_time;
+
+        let _ = self.job_tx.send(LocalUserUpdate::SendUserPosition(
+            Transform {
+                position: self.camera_position,
+                rotation: self.camera_rotation
+            }
+        ));
 
         if menu_tablet_state == 2 {
             for i in 0..self.world.get_objects().len() {
@@ -593,23 +608,45 @@ impl Renderer {
         // update ingame fps label when menu tablet is enabled
         if menu_tablet_state == 1 && self.frame % 60 == 0 {
             for (index, object) in self.world.get_objects().iter().enumerate() {
-                if object.get_tag() != "fps_label" { continue; }
-                let fps_label = text::create_plane_with_text(
-                    (-0.4, -0.3, -0.02), (0.03, 0.03, 1.0), 
-                    &self.font_maps["NotoSansJP"], &format!("FPS: {}", (1.0 / update_time).round())
-                );
-                let meshes = vertex::create_vertices(&fps_label);
-                for (vertices, _) in meshes {
-                    self.num_vertices[index] = vec![vertices.len() as u32];
-                    let vertex_buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor {
-                        label: Some("Vertex Buffer"),
-                        size: (size_of::<Vertex>() * vertices.len()) as u64,
-                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                        mapped_at_creation: false
-                    });
-                    self.vertex_buffers[index] = vec![vertex_buffer];
-                    self.init.queue.write_buffer(&self.vertex_buffers[index][0], 0, bytemuck::cast_slice(&vertices));
-                }
+                match object.get_tag() {
+                    "fps_label" => {
+                        let fps_label = text::create_plane_with_text(
+                        (-0.4, -0.3, -0.02), (0.02, 0.02, 1.0), 
+                        &self.font_maps["NotoSansJP"], &format!("FPS: {}", (1.0 / update_time).round())
+                        );
+                        let meshes = vertex::create_vertices(&fps_label);
+                        for (vertices, _) in meshes {
+                            self.num_vertices[index] = vec![vertices.len() as u32];
+                            let vertex_buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor {
+                                label: Some("Vertex Buffer"),
+                                size: (size_of::<Vertex>() * vertices.len()) as u64,
+                                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                                mapped_at_creation: false
+                            });
+                            self.vertex_buffers[index] = vec![vertex_buffer];
+                            self.init.queue.write_buffer(&self.vertex_buffers[index][0], 0, bytemuck::cast_slice(&vertices));
+                        }
+                    }
+                    "ram_label" => {
+                        let ram_label = text::create_plane_with_text(
+                        (-0.4, -0.2, -0.02), (0.02, 0.02, 1.0), 
+                        &self.font_maps["NotoSansJP"], &format!("RAM: {:.2} MB", ALLOCATOR.allocated() as f32 / 1000000.0)
+                        );
+                        let meshes = vertex::create_vertices(&ram_label);
+                        for (vertices, _) in meshes {
+                            self.num_vertices[index] = vec![vertices.len() as u32];
+                            let vertex_buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor {
+                                label: Some("Vertex Buffer"),
+                                size: (size_of::<Vertex>() * vertices.len()) as u64,
+                                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                                mapped_at_creation: false
+                            });
+                            self.vertex_buffers[index] = vec![vertex_buffer];
+                            self.init.queue.write_buffer(&self.vertex_buffers[index][0], 0, bytemuck::cast_slice(&vertices));
+                        }
+                    }
+                    _ => { continue; }
+                };
             }
         }
 

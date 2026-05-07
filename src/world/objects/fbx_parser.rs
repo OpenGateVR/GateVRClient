@@ -356,7 +356,6 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                     if let Some(transform_found) = transforms.get(&connection.to) {
                         if transform_found.object == ObjectType::Bone { continue; }
                         transform = transform_found;
-                        println!("Mesh: {}", transform.name);
                     }
                 }
             }
@@ -374,7 +373,7 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
 
             if let Some(mat) = material {
                 selected_material = &mat.name;
-                println!("mesh uses material: {}", mat.name);
+                println!("{} uses material: {}", transform.name, mat.name);
             }
 
             let mut triangles = vec![];
