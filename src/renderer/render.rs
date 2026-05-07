@@ -97,9 +97,9 @@ pub struct Renderer {
     frame: usize,
     previous_frame_time: std::time::Instant,
 
-    vertex_buffer: Vec<wgpu::Buffer>,
-    uniform_bind_group: Vec<wgpu::BindGroup>,
-    num_vertices: Vec<u32>,
+    vertex_buffers: Vec<Vec<wgpu::Buffer>>,
+    uniform_bind_groups: Vec<Vec<wgpu::BindGroup>>,
+    num_vertices: Vec<Vec<u32>>,
 
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     vertex_uniform_buffer: wgpu::Buffer,
@@ -391,13 +391,16 @@ impl Renderer {
         textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
         textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
         textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
+        textures.insert("textures/Selestia_hair.png".to_string(), TextureObject::create("textures/Selestia_hair.png", &init));
+        textures.insert("textures/Selestia_body.png".to_string(), TextureObject::create("textures/Selestia_body.png", &init));
+        textures.insert("textures/Selestia_face.png".to_string(), TextureObject::create("textures/Selestia_face.png", &init));
 
         let mut font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32)>> = HashMap::new();
 
         font_maps.insert("NotoSansJP".to_string(), load_font_uvs("fonts/NotoSansJP.ttf"));
 
-        let vertex_buffer = Vec::new();
-        let uniform_bind_group = Vec::new();
+        let vertex_buffers = Vec::new();
+        let uniform_bind_groups = Vec::new();
         let num_vertices = Vec::new();
 
         let previous_frame_time = std::time::Instant::now();
@@ -411,8 +414,8 @@ impl Renderer {
             frame: 0,
             previous_frame_time,
 
-            vertex_buffer,
-            uniform_bind_group,
+            vertex_buffers,
+            uniform_bind_groups,
             num_vertices,
 
             uniform_bind_group_layout,
@@ -595,16 +598,18 @@ impl Renderer {
                     (-0.4, -0.3, -0.02), (0.03, 0.03, 1.0), 
                     &self.font_maps["NotoSansJP"], &format!("FPS: {}", (1.0 / update_time).round())
                 );
-                let vertices = vertex::create_vertices(&fps_label.0, &fps_label.2, &fps_label.3, &fps_label.1);
-                self.num_vertices[index] = vertices.len() as u32;
-                let vertex_buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("Vertex Buffer"),
-                    size: (size_of::<Vertex>() * vertices.len()) as u64,
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                    mapped_at_creation: false
-                });
-                self.vertex_buffer[index] = vertex_buffer;
-                self.init.queue.write_buffer(&self.vertex_buffer[index], 0, bytemuck::cast_slice(&vertices));
+                let meshes = vertex::create_vertices(&fps_label);
+                for (vertices, _) in meshes {
+                    self.num_vertices[index] = vec![vertices.len() as u32];
+                    let vertex_buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("Vertex Buffer"),
+                        size: (size_of::<Vertex>() * vertices.len()) as u64,
+                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false
+                    });
+                    self.vertex_buffers[index] = vec![vertex_buffer];
+                    self.init.queue.write_buffer(&self.vertex_buffers[index][0], 0, bytemuck::cast_slice(&vertices));
+                }
             }
         }
 
@@ -614,67 +619,90 @@ impl Renderer {
     pub fn set_world(&mut self, world: World) {
         self.world = world;
 
-        self.vertex_buffer.clear();
-        self.uniform_bind_group.clear();
+        self.vertex_buffers.clear();
+        self.uniform_bind_groups.clear();
         self.num_vertices.clear();
 
-        for object in self.world.get_objects() {
-            let vertices = object.get_vertices();
+        for object in self.world.get_objects().iter().enumerate() {
+            let meshes = object.1.get_vertices();
+            let materials = object.1.get_materials();
+            self.vertex_buffers.push(Vec::new());
+            self.uniform_bind_groups.push(Vec::new());
+            self.num_vertices.push(Vec::new());
 
-            if let Some(texture) = self.textures.get(object.get_texture()) {
-                let model_uniform_buffer: wgpu::Buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor{
-                    label: Some("Vertex Uniform Buffer"),
-                    size: 128,
-                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                    mapped_at_creation: false,
-                });
+            let model_uniform_buffer: wgpu::Buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor{
+                label: Some("Vertex Uniform Buffer"),
+                size: 128,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
 
-                let model_mat = transforms::create_transforms([
-                    0.0, 0.0, 0.0], 
-                    [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
-                );
-                let normal_mat = (model_mat.invert().unwrap()).transpose();
+            let model_mat = transforms::create_transforms([
+                0.0, 0.0, 0.0], 
+                [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+            );
+            let normal_mat = (model_mat.invert().unwrap()).transpose();
 
-                let model_ref:&[f32; 16] = model_mat.as_ref();
-                let normal_ref:&[f32; 16] = normal_mat.as_ref();
-                self.init.queue.write_buffer(&model_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
-                self.init.queue.write_buffer(&model_uniform_buffer, 64, bytemuck::cast_slice(normal_ref));
+            let model_ref:&[f32; 16] = model_mat.as_ref();
+            let normal_ref:&[f32; 16] = normal_mat.as_ref();
+            self.init.queue.write_buffer(&model_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
+            self.init.queue.write_buffer(&model_uniform_buffer, 64, bytemuck::cast_slice(normal_ref));
 
-                if let Some(texture_displacement) = self.textures.get(object.get_displacement()) {
-                    let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
-                        &self.init, &self.uniform_bind_group_layout, 
-                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                        &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
-                        &texture_displacement.texture_rgba, 
-                        texture_displacement.texture_width, texture_displacement.texture_height,
-                        &texture.texture, texture.texture_size, &texture.texture_rgba, 
-                        texture.texture_width, texture.texture_height, vertices.len(),
-                    );
-                    
-                    self.vertex_buffer.push(vertex_buffer);
-                    self.uniform_bind_group.push(uniform_bind_group);
-
-                    self.num_vertices.push(vertices.len() as u32);
-                    self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
-                } else if let Some(texture_displacement) = self.textures.get("textures/displacement.png") {
-                    let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
-                        &self.init, &self.uniform_bind_group_layout, 
-                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                        &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
-                        &texture_displacement.texture_rgba, 
-                        texture_displacement.texture_width, texture_displacement.texture_height,
-                        &texture.texture, texture.texture_size, &texture.texture_rgba, 
-                        texture.texture_width, texture.texture_height, vertices.len(),
-                    );
-                    
-                    self.vertex_buffer.push(vertex_buffer);
-                    self.uniform_bind_group.push(uniform_bind_group);
-
-                    self.num_vertices.push(vertices.len() as u32);
-                    self.init.queue.write_buffer(&self.vertex_buffer[self.vertex_buffer.len() - 1], 0, bytemuck::cast_slice(vertices));
+            for (vertices, material) in meshes {
+                let material_texture;
+                let bytes_filtered: Vec<u8> = material.bytes().filter(|c| c > &(31 as u8)).collect();
+                let material_string = String::from_utf8(bytes_filtered).unwrap();
+                if let Some(texture) = materials.get(&material_string) {
+                    material_texture = texture.texture.as_str();
+                } else {
+                    material_texture = &materials.get("default").unwrap().texture;
                 }
-                self.model_uniform_buffers.push(model_uniform_buffer);
+                println!("loading: {} from: {}", material_texture, material_string);
+
+                if let Some(texture) = self.textures.get(material_texture) {
+                    if let Some(texture_displacement) = self.textures.get(object.1.get_displacement()) {
+                        let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
+                            &self.init, &self.uniform_bind_group_layout, 
+                            &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
+                            &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
+                            &texture_displacement.texture_rgba, 
+                            texture_displacement.texture_width, texture_displacement.texture_height,
+                            &texture.texture, texture.texture_size, &texture.texture_rgba, 
+                            texture.texture_width, texture.texture_height, vertices.len(),
+                        );
+                        
+                        self.vertex_buffers[object.0].push(vertex_buffer);
+                        self.uniform_bind_groups[object.0].push(uniform_bind_group);
+
+                        self.num_vertices[object.0].push(vertices.len() as u32);
+                        self.init.queue.write_buffer(
+                            &self.vertex_buffers[object.0][self.vertex_buffers[object.0].len() - 1], 0, 
+                            bytemuck::cast_slice(vertices)
+                        );
+                    } else if let Some(texture_displacement) = self.textures.get("textures/displacement.png") {
+                        let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
+                            &self.init, &self.uniform_bind_group_layout, 
+                            &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
+                            &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
+                            &texture_displacement.texture_rgba, 
+                            texture_displacement.texture_width, texture_displacement.texture_height,
+                            &texture.texture, texture.texture_size, &texture.texture_rgba, 
+                            texture.texture_width, texture.texture_height, vertices.len(),
+                        );
+                        
+                        self.vertex_buffers[object.0].push(vertex_buffer);
+                        self.uniform_bind_groups[object.0].push(uniform_bind_group);
+
+                        self.num_vertices[object.0].push(vertices.len() as u32);
+                        self.init.queue.write_buffer(
+                            &self.vertex_buffers[object.0][self.vertex_buffers[object.0].len() - 1], 0, 
+                            bytemuck::cast_slice(vertices)
+                        );
+                    }
+                }
             }
+
+            self.model_uniform_buffers.push(model_uniform_buffer);
         }
 
         if self.world.get_cameras().len() > self.current_camera {
@@ -743,10 +771,12 @@ impl Renderer {
             });
 
             render_pass.set_pipeline(&self.pipeline_displacement);
-            for i in 0..self.vertex_buffer.len() {
-                render_pass.set_vertex_buffer(0, self.vertex_buffer[i].slice(..));           
-                render_pass.set_bind_group(0, &self.uniform_bind_group[i], &[]);
-                render_pass.draw(0..self.num_vertices[i], 0..1);
+            for mesh in 0..self.vertex_buffers.len() {
+                for i in 0..self.vertex_buffers[mesh].len() {
+                    render_pass.set_vertex_buffer(0, self.vertex_buffers[mesh][i].slice(..));           
+                    render_pass.set_bind_group(0, &self.uniform_bind_groups[mesh][i], &[]);
+                    render_pass.draw(0..self.num_vertices[mesh][i], 0..1);
+                }
             }
         }
 

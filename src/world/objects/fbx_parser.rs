@@ -480,6 +480,10 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 mesh_data[mesh_data_index].1.push([0, 1, 0]);
                 mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
             }
+
+            if mesh_data[mesh_data_index].0.len() == 0 {
+                mesh_data.remove(mesh_data_index);
+            }
         }
     }
 
