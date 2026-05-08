@@ -1,7 +1,7 @@
 use winit::{event::*, event_loop::{ControlFlow, EventLoop}};
 use std::sync::mpsc;
 use crate::{
-    network::users::{LocalUserUpdate, UsersUpdate, start_user_handler}, 
+    network::users::{LocalUserUpdate, start_user_handler}, 
     renderer::render::Renderer, world::world::World
 };
 

@@ -508,13 +508,6 @@ impl Renderer {
         self.camera_position.1 += self.camera_acceleration_walking.1 * 1.0 * frame_time;
         self.camera_position.2 += self.camera_acceleration_walking.2 * 1.0 * frame_time;
 
-        let _ = self.job_tx.send(LocalUserUpdate::SendUserPosition(
-            Transform {
-                position: self.camera_position,
-                rotation: self.camera_rotation
-            }
-        ));
-
         if menu_tablet_state == 2 {
             for i in 0..self.world.get_objects().len() {
                 let object_type = self.world.get_objects()[i].get_object_type();
@@ -599,6 +592,13 @@ impl Renderer {
                 self.init.queue.write_buffer(&self.model_uniform_buffers[grabbable_object_index], 0, bytemuck::cast_slice(model_ref));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[grabbable_object_index], 64, bytemuck::cast_slice(normal_ref));
             }
+
+            let _ = self.job_tx.send(LocalUserUpdate::SendUserPosition(
+                Transform {
+                    position: self.camera_position,
+                    rotation: self.camera_rotation
+                }
+            ));
         }
 
         let up_direction = cgmath::Vector3::unit_y();
