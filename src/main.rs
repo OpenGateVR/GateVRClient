@@ -20,7 +20,7 @@ static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value(
 fn main() {
     let mut world = world::world::create_world();
 
-    let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0), (0.0, 0.0, 0.0));
+    /*let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0), (0.0, 0.0, 0.0));
     let mut skybox_object = Object::create(
         ObjectType::Skybox,
         renderer::vertex::create_vertices(&skybox)
@@ -51,7 +51,7 @@ fn main() {
         renderer::vertex::create_vertices(&ground)
     );
     ground_object.set_displacement("textures/ground_displacement.png");
-    world.add_object(ground_object);
+    world.add_object(ground_object);*/
 
     /*let ground_sphere = parse("models/sphere.fbx", (0.0, 4.0, 6.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
     let mut ground_sphere_object = Object::create(
@@ -69,7 +69,7 @@ fn main() {
     niko_object.add_material(Material{ texture: "textures/niko.png".to_string() }, "NikoMaterial");
     world.add_object(niko_object);
 
-    let test = parse("models/SELESTIA.fbx", (3.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
+    /*let test = parse("models/SELESTIA.fbx", (3.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
     let mut test_object = Object::create(
         ObjectType::Mesh,
         renderer::vertex::create_vertices(&test)
@@ -78,7 +78,7 @@ fn main() {
     test_object.add_material(Material{ texture: "textures/Selestia_hair.png".to_string() }, "Selestia_hairMaterial");
     test_object.add_material(Material{ texture: "textures/Selestia_body.png".to_string() }, "Selestia_bodyMaterial");
     test_object.add_material(Material{ texture: "textures/Selestia_face.png".to_string() }, "Selestia_optionMaterial");
-    world.add_object(test_object);
+    world.add_object(test_object);*/
 
     /*let figure = parse("models/niko.fbx", (0.0, 3.0, 0.0), (0.5, 0.5, 0.5), (0.0, 0.0, 0.0));
     let mut figure_object = Object::create(

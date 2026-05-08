@@ -328,13 +328,13 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
     }
 
     // map bones
-    /*for transform in &transforms {
+    for transform in &transforms {
         for connection in &connections {
             if &connection.from == transform.0 && transform.1.object == ObjectType::Bone {
-                println!("Bone from {} to {}", connection.from, connection.to);
+                println!("Bone from {} to {} with {}", connection.from, connection.to, transform.1.name);
             }
         }
-    }*/
+    }
 
     let mut selected_material = "default";
 
