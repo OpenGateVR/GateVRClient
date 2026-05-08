@@ -1,6 +1,4 @@
-use tokio::io::{AsyncWriteExt, Result};
 use tungstenite::{connect, Message};
-use futures_util::{StreamExt, SinkExt};
 use std::{sync::mpsc::Receiver, thread};
 
 pub struct Transform {
@@ -61,6 +59,18 @@ pub fn start_user_handler(job_rx: Receiver<LocalUserUpdate>) {
                         2 => {
                             user_id = u32::from_be_bytes([data[1], data[2], data[3], data[4]]);
                             println!("Received Free ID {}", user_id);
+                            let _ = socket.send(Message::Binary(vec![2].into()));
+                        }
+                        3 => {
+                            println!("RECEIVED PLAYER DATA!? {}", data.len());
+                            let player_amount = (data.len() - 1) / 28;
+                            for i in 0..player_amount {
+                                let player_id = u32::from_be_bytes([
+                                    data[i + 1], data[i + 2], data[i + 3], data[i + 4]
+                                ]);
+                                if player_id == user_id { continue; }
+                                println!("player: {}", player_id);
+                            }
                         }
                         0 => {}
                         _ => { println!("Unknown Command ({})", data[0]); }
