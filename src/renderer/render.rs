@@ -471,6 +471,15 @@ impl Renderer {
             self.camera_rotation.0.sin(),
             self.camera_rotation.1.sin() * self.camera_rotation.0.cos(),
         ).normalize();
+        let mut forward_x = forward[0];
+        let mut forward_z = forward[2];
+
+        let len = (forward_x * forward_x + forward_z * forward_z).sqrt();
+        if len > 0.0 {
+            forward_x /= len;
+            forward_z /= len;
+        }
+
         let right = Vector3::new(
             self.camera_rotation.1.sin(),
             0.0,
@@ -479,12 +488,12 @@ impl Renderer {
 
         self.camera_acceleration_walking = (0.0, self.camera_acceleration_walking.1, 0.0).into();
         if keys[0] {
-            self.camera_acceleration_walking.0 += frame_time * forward[0];
-            self.camera_acceleration_walking.2 += frame_time * forward[2];
+            self.camera_acceleration_walking.0 += frame_time * forward_x;
+            self.camera_acceleration_walking.2 += frame_time * forward_z;
         }
         if keys[2] {
-            self.camera_acceleration_walking.0 -= frame_time * forward[0];
-            self.camera_acceleration_walking.2 -= frame_time * forward[2];
+            self.camera_acceleration_walking.0 -= frame_time * forward_x;
+            self.camera_acceleration_walking.2 -= frame_time * forward_z;
         }
         if keys[1] {
             self.camera_acceleration_walking.0 += frame_time * right[0];
