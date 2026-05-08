@@ -1,7 +1,7 @@
 use rust_embed::RustEmbed;
 use fbx::{File, Node};
 use fbx::Property;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Cursor};
 
 #[derive(RustEmbed)]
@@ -37,6 +37,7 @@ struct Transform {
     scaling: (f64, f64, f64),
     name: String,
     id: i64,
+    parent: i64,
     object: ObjectType
 }
 
@@ -270,6 +271,7 @@ fn get_transform(node: &Node) -> Option<Transform> {
             scaling,
             name,
             id,
+            parent: 0,
             object
         });
     }
@@ -327,11 +329,13 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
         connections.extend(parse_connections(node));
     }
 
-    // map bones
-    for transform in &transforms {
+    let existing_keys: HashSet<_> = transforms.keys().cloned().collect();
+    for transform in transforms.iter_mut() {
         for connection in &connections {
             if &connection.from == transform.0 && transform.1.object == ObjectType::Bone {
-                println!("Bone from {} to {} with {}", connection.from, connection.to, transform.1.name);
+                if existing_keys.contains(&connection.to) {
+                    transform.1.parent = connection.to;
+                }
             }
         }
     }
@@ -347,6 +351,7 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 scaling: (0.0, 0.0, 0.0),
                 name: "Unknown".to_string(),
                 id: 0,
+                parent: 0,
                 object: ObjectType::Bone
             };
             let mut model_id = None;
