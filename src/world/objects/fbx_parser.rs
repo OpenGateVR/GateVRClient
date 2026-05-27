@@ -46,6 +46,14 @@ struct Connection {
     to: i64,
 }
 
+#[derive(Debug)]
+struct Cluster {
+    id: i64,
+    indices: Vec<i32>,
+    weights: Vec<f64>,
+    bone_id: i64,
+}
+
 fn rotate_x(v: [f64; 3], angle: f64) -> [f64; 3] {
     let (s, c) = angle.sin_cos();
     [
@@ -104,6 +112,60 @@ fn parse_connections(node: &Node) -> Vec<Connection> {
     }
 
     conns
+}
+
+fn parse_clusters(node: &Node) -> HashMap<i64, Cluster> {
+    let mut clusters = HashMap::new();
+
+    if node.name == "Objects" {
+        for child in &node.children {
+            if child.name == "Deformer" {
+
+                let id = get_id(child).unwrap_or(0);
+
+                let deformer_type = match child.properties.get(2) {
+                    Some(Property::String(s)) => s.as_str(),
+                    _ => "",
+                };
+
+                if deformer_type == "Cluster" {
+                    let mut indices = vec![];
+                    let mut weights = vec![];
+
+                    for sub in &child.children {
+                        match sub.name.as_str() {
+                            "Indexes" => {
+                                for prop in &sub.properties {
+                                    if let Property::I32Array(arr) = prop {
+                                        indices.extend(arr);
+                                    }
+                                }
+                            }
+
+                            "Weights" => {
+                                for prop in &sub.properties {
+                                    if let Property::F64Array(arr) = prop {
+                                        weights.extend(arr);
+                                    }
+                                }
+                            }
+
+                            _ => {}
+                        }
+                    }
+
+                    clusters.insert(id, Cluster {
+                        id,
+                        indices,
+                        weights,
+                        bone_id: 0,
+                    });
+                }
+            }
+        }
+    }
+
+    clusters
 }
 
 fn traverse_nodes(node: &Node) -> Vec<Mesh> {

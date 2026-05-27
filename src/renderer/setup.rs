@@ -21,7 +21,7 @@ pub fn start_engine(world: World) {
     let mut mouse_locked = false;
 
     let mut keys = [false; 6]; // keys: W A S D
-    let mut mouse = [0.0; 2]; // mouse movement x and y
+    let mut mouse: [f32; 2] = [0.0; 2]; // mouse movement x and y
 
     let mut use_confined = false;
 
@@ -37,8 +37,8 @@ pub fn start_engine(world: World) {
         match event {
             Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
                 if mouse_locked && !use_confined {
-                    mouse[0] -= delta.0;
-                    mouse[1] -= delta.1;
+                    mouse[0] -= delta.0 as f32;
+                    mouse[1] -= delta.1 as f32;
                 }
             }
             Event::WindowEvent {
@@ -68,8 +68,8 @@ pub fn start_engine(world: World) {
                             let window_size = window.inner_size();
                             let center_x = window_size.width as f64 / 2.0;
                             let center_y = window_size.height as f64 / 2.0;
-                            mouse[0] += center_x - position.x;
-                            mouse[1] += center_y - position.y;
+                            mouse[0] += (center_x - position.x) as f32;
+                            mouse[1] += (center_y - position.y) as f32;
                             window.set_cursor_position(winit::dpi::PhysicalPosition::new(center_x, center_y)).expect("Failed to set cursor position");
                         } else {
                             mouse[0] = 0.0;

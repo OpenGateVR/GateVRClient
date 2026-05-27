@@ -3,6 +3,7 @@ pub mod world;
 pub mod interract;
 pub mod setup;
 pub mod network;
+pub mod physics;
 
 use world::object::Object;
 use std::alloc;
@@ -20,7 +21,7 @@ static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value(
 fn main() {
     let mut world = world::world::create_world();
 
-    /*let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0), (0.0, 0.0, 0.0));
+    let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0), (0.0, 0.0, 0.0));
     let mut skybox_object = Object::create(
         ObjectType::Skybox,
         renderer::vertex::create_vertices(&skybox)
@@ -51,7 +52,7 @@ fn main() {
         renderer::vertex::create_vertices(&ground)
     );
     ground_object.set_displacement("textures/ground_displacement.png");
-    world.add_object(ground_object);*/
+    world.add_object(ground_object);
 
     /*let ground_sphere = parse("models/sphere.fbx", (0.0, 4.0, 6.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
     let mut ground_sphere_object = Object::create(

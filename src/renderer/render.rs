@@ -3,11 +3,12 @@ use winit::window::Window;
 use std::iter;
 use wgpu::BindGroup;
 use rust_embed::RustEmbed;
-use image::{DynamicImage, GenericImageView};
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
 use crate::interract::raycast::raycast_grab;
+use crate::physics::movement::{get_camera_movement, get_camera_rotation};
+use crate::renderer::texture_object::TextureObject;
 use crate::renderer::{transforms, vertex};
 use crate::renderer::vertex::Vertex;
 use crate::setup::fonts::{load_font_atlas, load_font_uvs};
@@ -17,79 +18,9 @@ use crate::world::world::World;
 use crate::network::users::{LocalUserUpdate, Transform};
 use crate::ALLOCATOR;
 
-pub struct TextureObject {
-    texture: wgpu::Texture,
-    texture_size: wgpu::Extent3d,
-    texture_rgba: Vec<u8>,
-    texture_width: u32,
-    texture_height: u32
-}
-impl TextureObject {
-    pub fn create(path: &str, init: &transforms::InitWgpu) -> Self {
-        let texture_data = Assets::get(path).expect("Failed to load embedded texture");
-        let img = image::load_from_memory(&texture_data.data).expect("Failed to load texture");
-        println!("loaded {}", path);
-        let texture_rgba = img.to_rgba8().to_vec();
-        let (width, height) = img.dimensions();
-        let texture_size = wgpu::Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        };
-
-        let texture: wgpu::Texture = init.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Texture"),
-            size: texture_size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-
-        Self {
-            texture,
-            texture_size,
-            texture_rgba,
-            texture_width: width,
-            texture_height: height
-        }
-    }
-
-    pub fn load_from_dynamic_image(img: DynamicImage, init: &transforms::InitWgpu) -> Self {
-        let texture_rgba = img.to_rgba8().to_vec();
-        let (width, height) = img.dimensions();
-        let texture_size = wgpu::Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        };
-
-        let texture: wgpu::Texture = init.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Texture"),
-            size: texture_size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-
-        Self {
-            texture,
-            texture_size,
-            texture_rgba,
-            texture_width: width,
-            texture_height: height
-        }
-    }
-}
-
 #[derive(RustEmbed)]
 #[folder = "assets/"]
-struct Assets;
+pub struct Assets;
 
 pub struct Renderer {
     pub init: transforms::InitWgpu,
@@ -452,7 +383,7 @@ impl Renderer {
             self.project_mat = transforms::create_projection(new_size.width as f32 / new_size.height as f32);
         }
     }
-    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 6], mouse: [f64; 2], menu_tablet_state: usize) {
+    pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 6], mouse: [f32; 2], menu_tablet_state: usize) {
         //self.camera_rotation.1 = dt.as_secs_f32();
         let current_time = std::time::Instant::now();
         let mut frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
@@ -462,51 +393,22 @@ impl Renderer {
             frame_time = 5.0
         }
 
-        self.camera_rotation.1 -= mouse[0] as f32 * (frame_time * 0.02);
-        self.camera_rotation.0 += mouse[1] as f32 * (frame_time * 0.02);
-        self.camera_rotation.0 = self.camera_rotation.0.clamp(-std::f32::consts::FRAC_PI_2 / 1.01, std::f32::consts::FRAC_PI_2 / 1.01);
+        let updated_camera_rotation = get_camera_rotation(
+            self.camera_rotation.0, self.camera_rotation.1, mouse, frame_time);
+        self.camera_rotation.0 = updated_camera_rotation.0;
+        self.camera_rotation.1 = updated_camera_rotation.1;
 
         let forward = Vector3::new(
             self.camera_rotation.1.cos() * self.camera_rotation.0.cos(),
             self.camera_rotation.0.sin(),
             self.camera_rotation.1.sin() * self.camera_rotation.0.cos(),
         ).normalize();
-        let mut forward_x = forward[0];
-        let mut forward_z = forward[2];
 
-        let len = (forward_x * forward_x + forward_z * forward_z).sqrt();
-        if len > 0.0 {
-            forward_x /= len;
-            forward_z /= len;
-        }
-
-        let right = Vector3::new(
-            self.camera_rotation.1.sin(),
-            0.0,
-            -self.camera_rotation.1.cos(),
-        ).normalize();
-
-        self.camera_acceleration_walking = (0.0, self.camera_acceleration_walking.1, 0.0).into();
-        if keys[0] {
-            self.camera_acceleration_walking.0 += frame_time * forward_x;
-            self.camera_acceleration_walking.2 += frame_time * forward_z;
-        }
-        if keys[2] {
-            self.camera_acceleration_walking.0 -= frame_time * forward_x;
-            self.camera_acceleration_walking.2 -= frame_time * forward_z;
-        }
-        if keys[1] {
-            self.camera_acceleration_walking.0 += frame_time * right[0];
-            self.camera_acceleration_walking.2 += frame_time * right[2];
-        }
-        if keys[3] {
-            self.camera_acceleration_walking.0 -= frame_time * right[0];
-            self.camera_acceleration_walking.2 -= frame_time * right[2];
-        }
-
-        self.camera_position.0 += self.camera_acceleration_walking.0 * 1.0 * frame_time;
-        self.camera_position.1 += self.camera_acceleration_walking.1 * 1.0 * frame_time;
-        self.camera_position.2 += self.camera_acceleration_walking.2 * 1.0 * frame_time;
+        let updated_camera_position = get_camera_movement(
+            self.camera_acceleration_walking, keys, forward, frame_time, self.camera_rotation);
+        self.camera_position.0 += updated_camera_position.0;
+        self.camera_position.1 += updated_camera_position.1;
+        self.camera_position.2 += updated_camera_position.2;
 
         if menu_tablet_state == 2 {
             for i in 0..self.world.get_objects().len() {
