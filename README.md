@@ -7,10 +7,12 @@ Custom engine? Of course! :D
 
 # Todo List Client:
 - [x] Basic Rendering
+- [x] Text Rendering
 - [ ] OpenXR intergration
 - [x] Mesh importing FBX
 - [x] Material importing FBX
 - [ ] Bone importing FBX
+- [x] Font importer
 - [ ] Unity exporting plugin (for making worlds and avatars)
 - [ ] Mirror system
 - [ ] Video system
