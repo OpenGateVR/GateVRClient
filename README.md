@@ -1,3 +1,6 @@
 # GateVRClient
 The fully opensource original GateVR client  
-Custom engine? Of course :D  
+Custom 3d model importer? Of course,  
+Custom server architecture? Of course,
+Custom packet system? Of course,
+Custom engine? Of course! :D  
