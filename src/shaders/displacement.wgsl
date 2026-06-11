@@ -23,7 +23,11 @@ struct Output {
 };
 
 @vertex
-fn vs_main(@location(0) pos: vec4<f32>, @location(1) normal: vec4<f32>, @location(2) color: vec4<f32>, @location(3) uv: vec4<f32>) -> Output {
+fn vs_main(
+    @location(0) pos: vec4<f32>, @location(1) normal: vec4<f32>, 
+    @location(2) color: vec4<f32>, @location(3) uv: vec4<f32>,
+    @location(4) bone_index: vec4<f32>, @location(5) bone_weight: vec4<f32>
+    ) -> Output {
     var output: Output;
 
     // Sample displacement map

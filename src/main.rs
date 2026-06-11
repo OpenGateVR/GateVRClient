@@ -24,7 +24,7 @@ fn main() {
     let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0), (0.0, 0.0, 0.0));
     let mut skybox_object = Object::create(
         ObjectType::Skybox,
-        renderer::vertex::create_vertices(&skybox)
+        renderer::vertex::create_vertices_skinned(&skybox)
     );
     skybox_object.set_default_texture("textures/skybox_2.png");
     skybox_object.set_movable(true);
@@ -41,7 +41,7 @@ fn main() {
     let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
     let mut table_object = Object::create(
         ObjectType::Mesh,
-        renderer::vertex::create_vertices(&table)
+        renderer::vertex::create_vertices_skinned(&table)
     );
     table_object.set_default_texture("textures/table.png");
     world.add_object(table_object);
@@ -49,7 +49,7 @@ fn main() {
     let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0), (0.0, 0.0, 0.0));
     let mut ground_object = Object::create(
         ObjectType::Mesh,
-        renderer::vertex::create_vertices(&ground)
+        renderer::vertex::create_vertices_skinned(&ground)
     );
     ground_object.set_displacement("textures/ground_displacement.png");
     world.add_object(ground_object);
@@ -65,7 +65,7 @@ fn main() {
     let niko = parse("models/niko.fbx", (0.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
     let mut niko_object = Object::create(
         ObjectType::Mesh,
-        renderer::vertex::create_vertices(&niko)
+        renderer::vertex::create_vertices_skinned(&niko)
     );
     niko_object.add_material(Material{ texture: "textures/niko.png".to_string() }, "NikoMaterial");
     world.add_object(niko_object);

@@ -54,6 +54,17 @@ struct Cluster {
     bone_id: i64,
 }
 
+#[derive(Debug)]
+struct Skin {
+    id: i64,
+}
+
+pub struct SkinnedVertex {
+    pub position: [f64; 3],
+    pub bone_ids: [u32; 4],
+    pub weights: [f32; 4],
+}
+
 fn rotate_x(v: [f64; 3], angle: f64) -> [f64; 3] {
     let (s, c) = angle.sin_cos();
     [
@@ -166,6 +177,31 @@ fn parse_clusters(node: &Node) -> HashMap<i64, Cluster> {
     }
 
     clusters
+}
+
+fn parse_skins(node: &Node) -> HashMap<i64, Skin> {
+    let mut skins = HashMap::new();
+
+    if node.name == "Objects" {
+        for child in &node.children {
+            if child.name != "Deformer" {
+                continue;
+            }
+
+            let id = get_id(child).unwrap_or(0);
+
+            let deformer_type = match child.properties.get(2) {
+                Some(Property::String(s)) => s.as_str(),
+                _ => "",
+            };
+
+            if deformer_type == "Skin" {
+                skins.insert(id, Skin { id });
+            }
+        }
+    }
+
+    skins
 }
 
 fn traverse_nodes(node: &Node) -> Vec<Mesh> {
@@ -364,20 +400,58 @@ fn parse_materials(node: &Node) -> HashMap<i64, Material> {
     materials
 }
 
-pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rotation: (f64, f64, f64)) -> Vec<(Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> {
+fn pack_weights(
+    influences: &[(i64, f32)],
+    bone_map: &HashMap<i64, usize>,
+) -> ([u32; 4], [f32; 4]) {
+
+    let mut ids = [0u32; 4];
+    let mut weights = [0.0f32; 4];
+
+    let mut sorted = influences.to_vec();
+
+    sorted.sort_by(|a, b|
+        b.1.partial_cmp(&a.1).unwrap());
+
+    for (i, (bone_id, weight))
+        in sorted.iter().take(4).enumerate()
+    {
+        ids[i] = bone_map[bone_id] as u32;
+        weights[i] = *weight;
+    }
+
+    let total: f32 = weights.iter().sum();
+
+    if total > 0.0 {
+        for w in &mut weights {
+            *w /= total;
+        }
+    }
+
+    (ids, weights)
+}
+
+pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rotation: (f64, f64, f64)) -> Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
     let mut reader = BufReader::new(cursor);
     let file = File::read_from(&mut reader).expect("Failed to parse FBX file");
 
-    let mut mesh_data: Vec<(Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> = Vec::new();
+    let mut mesh_data: Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> = Vec::new();
 
     let mut transforms = HashMap::new();
     let mut materials = HashMap::new();
     let mut connections = Vec::new();
+    let mut clusters = HashMap::new();
+    let mut skins = HashMap::new();
+    let mut geometry_clusters: HashMap<i64, Vec<i64>> = HashMap::new();
+    let mut bone_map = HashMap::new();
 
     for node in &file.children {
         materials.extend(parse_materials(node));
+    }
+    for node in &file.children {
+        skins.extend(parse_skins(node));
     }
 
     for node in &file.children {
@@ -389,6 +463,56 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
             }
         }
         connections.extend(parse_connections(node));
+    }
+
+    for node in &file.children {
+        clusters.extend(parse_clusters(node));
+    }
+    for conn in &connections {
+        if clusters.contains_key(&conn.to) {
+            if let Some(cluster) = clusters.get_mut(&conn.to) {
+                cluster.bone_id = conn.from;
+            }
+        }
+    }
+
+    for cluster in clusters.values() {
+        let mut skin_id = None;
+
+        for conn in &connections {
+            if conn.from == cluster.id {
+                if skins.contains_key(&conn.to) {
+                    skin_id = Some(conn.to);
+                    break;
+                }
+            }
+        }
+
+        let Some(skin_id) = skin_id else {
+            continue;
+        };
+
+        for conn in &connections {
+            if conn.from == skin_id {
+                geometry_clusters
+                    .entry(conn.to)
+                    .or_default()
+                    .push(cluster.id);
+            }
+        }
+    }
+
+    let bones: Vec<_> = transforms.values().filter(|t| t.object == ObjectType::Bone).collect();
+    for (index, bone) in bones.iter().enumerate() {
+        bone_map.insert(bone.id, index);
+    }
+
+    for (geom, cluster_ids) in &geometry_clusters {
+        println!(
+            "Geometry {} has {} clusters",
+            geom,
+            cluster_ids.len()
+        );
     }
 
     let existing_keys: HashSet<_> = transforms.keys().cloned().collect();
@@ -434,6 +558,22 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                         if let Some(mat) = materials.get(&connection.from) {
                             material = Some(mat);
                         }
+                    }
+                }
+            }
+
+            let vertex_count = mesh.vertices.len() / 3;
+            let vertex_weights: Vec<Vec<(i64, f32)>> = vec![Vec::new(); vertex_count];
+
+            if let Some(cluster_ids) = geometry_clusters.get(&mesh.id) {
+                let mut vertex_weights = vec![Vec::<(i64, f32)>::new(); vertex_count];
+
+                for cluster_id in cluster_ids {
+                    let cluster = &clusters[cluster_id];
+
+                    for (&vertex_idx, &weight) in cluster.indices.iter().zip(cluster.weights.iter()) {
+                        vertex_weights[vertex_idx as usize].push((cluster.bone_id, weight as f32));
+                        println!("{} {}", cluster_id, cluster.bone_id);
                     }
                 }
             }
@@ -492,7 +632,10 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 v[1] += position.1 + transform.translation.1;
                 v[2] += position.2 + transform.translation.2;
                 
-                mesh_data[mesh_data_index].0.push(v);
+                let (bone_ids, weights) = pack_weights(&vertex_weights[tri[0]], &bone_map);
+                //println!("{} {} {} {}", bone_ids[0], bone_ids[1], bone_ids[2], bone_ids[3]);
+
+                mesh_data[mesh_data_index].0.push(SkinnedVertex{ position: v, bone_ids: [100, 10, 100, 10], weights});
                 mesh_data[mesh_data_index].3.push([
                     mesh.uv[tri[3] * 2] as f32, 
                     1.0 - mesh.uv[tri[3] * 2 + 1] as f32
@@ -515,7 +658,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 v[1] += position.1 + transform.translation.1;
                 v[2] += position.2 + transform.translation.2;
 
-                mesh_data[mesh_data_index].0.push(v);
+                let (bone_ids, weights) = pack_weights(&vertex_weights[tri[1]], &bone_map);
+                
+                mesh_data[mesh_data_index].0.push(SkinnedVertex { position: v, bone_ids, weights });
                 mesh_data[mesh_data_index].3.push([
                     mesh.uv[tri[4] * 2] as f32, 
                     1.0 - mesh.uv[tri[4] * 2 + 1] as f32
@@ -538,7 +683,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 v[1] += position.1 + transform.translation.1;
                 v[2] += position.2 + transform.translation.2;
 
-                mesh_data[mesh_data_index].0.push(v);
+                let (bone_ids, weights) = pack_weights(&vertex_weights[tri[2]], &bone_map);
+
+                mesh_data[mesh_data_index].0.push(SkinnedVertex { position: v, bone_ids, weights });
                 mesh_data[mesh_data_index].3.push([
                     mesh.uv[tri[5] * 2] as f32, 
                     1.0 - mesh.uv[tri[5] * 2 + 1] as f32
