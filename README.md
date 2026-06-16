@@ -11,6 +11,7 @@ Custom engine? Of course! :D
 - [ ] OpenXR intergration
 - [x] Mesh importing FBX
 - [x] Material importing FBX
+- [x] Material displacement
 - [ ] Bone importing FBX
 - [x] Font importer
 - [ ] Unity exporting plugin (for making worlds and avatars)
@@ -26,3 +27,4 @@ Custom engine? Of course! :D
 
 # Todo List Future:
 - [ ] Self hosting (with relay system for safety)
+- [ ] Foviated rendering

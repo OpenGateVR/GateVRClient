@@ -27,6 +27,7 @@ pub struct Renderer {
     project_mat: Matrix4<f32>,
 
     pipeline_displacement: wgpu::RenderPipeline,
+    pipeline_displacement_bones: wgpu::RenderPipeline,
 
     frame: usize,
     previous_frame_time: std::time::Instant,
@@ -287,6 +288,56 @@ impl Renderer {
             multiview: None
         });
 
+        let shader_displacement_bones = init.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/displacement_bones.wgsl").into()),
+        });
+
+        let pipeline_displacement_bones = init.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader_displacement_bones,
+                entry_point: "vs_main",
+                buffers: &[Vertex::desc()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader_displacement_bones,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: init.config.format,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState{
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                cull_mode: Some(wgpu::Face::Back),
+                ..Default::default()
+            },
+            //depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth24Plus,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::LessEqual,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None
+        });
+
         let vertex_uniform_buffer: wgpu::Buffer = init.device.create_buffer(&wgpu::BufferDescriptor{
             label: Some("Vertex Uniform Buffer"),
             size: 192,
@@ -313,6 +364,9 @@ impl Renderer {
         init.queue.write_buffer(&vertex_uniform_buffer, 128, bytemuck::cast_slice(normal_ref));
 
         let mut textures: HashMap<String, TextureObject> = HashMap::new();
+
+        // create missing texture
+        textures.insert("textures/missing.png".to_string(), TextureObject::create("textures/missing.png", &init));
 
         // create font atlasses
         textures.insert("fonts/NotoSansJP.ttf".to_string(), TextureObject::load_from_dynamic_image(load_font_atlas("fonts/NotoSansJP.ttf"), &init));
@@ -347,6 +401,7 @@ impl Renderer {
             project_mat,
 
             pipeline_displacement,
+            pipeline_displacement_bones,
 
             frame: 0,
             previous_frame_time,
@@ -596,58 +651,68 @@ impl Renderer {
             self.init.queue.write_buffer(&model_uniform_buffer, 0, bytemuck::cast_slice(model_ref));
             self.init.queue.write_buffer(&model_uniform_buffer, 64, bytemuck::cast_slice(normal_ref));
 
-            for (vertices, material) in meshes {
-                let material_texture;
-                let bytes_filtered: Vec<u8> = material.bytes().filter(|c| c > &(31 as u8)).collect();
+            for (vertices, material_name) in meshes {
+                let material_found;
+                let bytes_filtered: Vec<u8> = material_name.bytes().filter(|c| c > &(31 as u8)).collect();
                 let material_string = String::from_utf8(bytes_filtered).unwrap();
-                if let Some(texture) = materials.get(&material_string) {
-                    material_texture = texture.texture.as_str();
+
+                if let Some(material) = materials.get(&material_string) {
+                    material_found = material;
                 } else {
-                    material_texture = &materials.get("default").unwrap().texture;
+                    material_found = &materials.get("default").unwrap();
                 }
-                println!("loading: {} from: {}", material_texture, material_string);
 
-                if let Some(texture) = self.textures.get(material_texture) {
-                    if let Some(texture_displacement) = self.textures.get(object.1.get_displacement()) {
-                        let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
+                let material_found_texture = material_found.get_texture();
+                let material_found_displacement = material_found.get_displacement();
+
+                println!("loading: {} from: {}", material_found_texture, material_string);
+
+                let texture_object;
+                if let Some(texture) = self.textures.get(material_found_texture) {
+                    texture_object = texture;
+                } else { continue; }
+
+                let texture_object_displacement;
+                if let Some(texture_displacement_name) = material_found_displacement {
+                    if let Some(texture_displacement) = self.textures.get(texture_displacement_name) {
+                        texture_object_displacement = Some(texture_displacement);
+                    } else { texture_object_displacement = None; }
+                } else { texture_object_displacement = None; }
+
+                let uniform_bind_group;
+                let vertex_buffer;
+                if let Some(texture_displacement) = texture_object_displacement {
+                    (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
+                        &self.init, &self.uniform_bind_group_layout, 
+                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
+                        &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
+                        &texture_displacement.texture_rgba, 
+                        texture_displacement.texture_width, texture_displacement.texture_height,
+                        &texture_object.texture, texture_object.texture_size, &texture_object.texture_rgba, 
+                        texture_object.texture_width, texture_object.texture_height, vertices.len(),
+                    );
+                } else {
+                    if let Some(texture_displacement) = self.textures.get("textures/displacement.png") {
+                        (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
                             &self.init, &self.uniform_bind_group_layout, 
                             &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
                             &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
                             &texture_displacement.texture_rgba, 
                             texture_displacement.texture_width, texture_displacement.texture_height,
-                            &texture.texture, texture.texture_size, &texture.texture_rgba, 
-                            texture.texture_width, texture.texture_height, vertices.len(),
+                            &texture_object.texture, texture_object.texture_size, &texture_object.texture_rgba, 
+                            texture_object.texture_width, texture_object.texture_height, vertices.len(),
                         );
-                        
-                        self.vertex_buffers[object.0].push(vertex_buffer);
-                        self.uniform_bind_groups[object.0].push(uniform_bind_group);
-
-                        self.num_vertices[object.0].push(vertices.len() as u32);
-                        self.init.queue.write_buffer(
-                            &self.vertex_buffers[object.0][self.vertex_buffers[object.0].len() - 1], 0, 
-                            bytemuck::cast_slice(vertices)
-                        );
-                    } else if let Some(texture_displacement) = self.textures.get("textures/displacement.png") {
-                        let (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
-                            &self.init, &self.uniform_bind_group_layout, 
-                            &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                            &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
-                            &texture_displacement.texture_rgba, 
-                            texture_displacement.texture_width, texture_displacement.texture_height,
-                            &texture.texture, texture.texture_size, &texture.texture_rgba, 
-                            texture.texture_width, texture.texture_height, vertices.len(),
-                        );
-                        
-                        self.vertex_buffers[object.0].push(vertex_buffer);
-                        self.uniform_bind_groups[object.0].push(uniform_bind_group);
-
-                        self.num_vertices[object.0].push(vertices.len() as u32);
-                        self.init.queue.write_buffer(
-                            &self.vertex_buffers[object.0][self.vertex_buffers[object.0].len() - 1], 0, 
-                            bytemuck::cast_slice(vertices)
-                        );
-                    }
+                    } else { continue; }
                 }
+                
+                self.vertex_buffers[object.0].push(vertex_buffer);
+                self.uniform_bind_groups[object.0].push(uniform_bind_group);
+
+                self.num_vertices[object.0].push(vertices.len() as u32);
+                self.init.queue.write_buffer(
+                    &self.vertex_buffers[object.0][self.vertex_buffers[object.0].len() - 1], 0, 
+                    bytemuck::cast_slice(vertices)
+                );
             }
 
             self.model_uniform_buffers.push(model_uniform_buffer);

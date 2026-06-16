@@ -10,7 +10,7 @@ use std::alloc;
 use cap::Cap;
 
 use crate::setup::fonts::load_font_uvs;
-use crate::world::object::Material;
+use crate::world::material::Material;
 use crate::world::objects::text;
 use crate::world::objects::cube;
 use crate::world::{object::ObjectType, objects::fbx_parser::parse};
@@ -51,6 +51,7 @@ fn main() {
         ObjectType::Mesh,
         renderer::vertex::create_vertices_skinned(&ground)
     );
+    ground_object.set_default_texture("textures/ground.jpg");
     ground_object.set_displacement("textures/ground_displacement.png");
     world.add_object(ground_object);
 
@@ -67,7 +68,7 @@ fn main() {
         ObjectType::Mesh,
         renderer::vertex::create_vertices_skinned(&niko)
     );
-    niko_object.add_material(Material{ texture: "textures/niko.png".to_string() }, "NikoMaterial");
+    niko_object.add_material(Material::from_texture("textures/niko.png"), "NikoMaterial");
     world.add_object(niko_object);
 
     /*let test = parse("models/SELESTIA.fbx", (3.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));

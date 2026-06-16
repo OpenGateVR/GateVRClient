@@ -11,7 +11,7 @@ pub struct Vertex {
     pub normal: [f32; 4],
     pub color: [f32; 4],
     pub uv: [f32; 4],
-    pub bone_ids: [u32; 4],
+    pub bone_ids: [f32; 4],
     pub bone_weights: [f32; 4],
 }
 impl Vertex {
@@ -35,7 +35,7 @@ fn vertex(p:[f64;3], n:[i8; 3], c:[f32; 3], u:[f32; 2], bi: [u32; 4], bw: [f32; 
         normal: [n[0] as f32, n[1] as f32, n[2] as f32, 1.0],
         color: [c[0], c[1], c[2], 1.0],
         uv: [u[0], u[1], 0.0, 0.0],
-        bone_ids: bi,
+        bone_ids: [bi[0] as f32, bi[1] as f32, bi[2] as f32, bi[3] as f32],
         bone_weights: bw
     }
 }

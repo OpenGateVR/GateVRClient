@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::renderer::vertex::Vertex;
+use crate::{renderer::vertex::Vertex, world::material::Material};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ObjectType {
@@ -12,11 +12,6 @@ pub enum ObjectType {
     Grabbable,
     TabletMenu,
     TabletMenuButton
-}
-
-#[derive(Clone)]
-pub struct Material {
-    pub texture: String
 }
 
 // this is a game object, and will be used to render the vertices
@@ -35,7 +30,7 @@ pub struct Object {
 impl Object {
     pub fn create(object_type: ObjectType, meshes: Vec<(Vec<Vertex>, String)>) -> Self {
         let mut materials = HashMap::new();
-        materials.insert("default".to_string(), Material { texture: "textures/ground.jpg".to_string() });
+        materials.insert("default".to_string(), Material { texture: "textures/missing.png".to_string(), displacement: "".to_string() });
         Self {
             object_type: object_type,
             position: (0.0, 0.0, 0.0),
@@ -69,10 +64,12 @@ impl Object {
         self.vertices = vertices;
     }
     pub fn set_default_texture(&mut self, texture: &str) {
-        self.materials.insert("default".to_string(), Material { texture: texture.to_string() });
+        self.materials.insert("default".to_string(), Material { texture: texture.to_string(), displacement: "".to_string() });
     }
     pub fn set_displacement(&mut self, texture: &str) {
-        self.displacement_texture = texture.to_string()
+        for material in self.materials.values_mut() {
+            material.displacement = texture.to_string();
+        }
     }
     pub fn set_movable(&mut self, value: bool) {
         self.movable = value;
