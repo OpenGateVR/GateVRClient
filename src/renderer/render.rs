@@ -555,12 +555,12 @@ impl Renderer {
                 self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
-            } else if self.world.get_object(i).get_object_type() == ObjectType::SkinnedMesh {
-                for bone_index in 0..self.bones[i].len() {
+            }/* else if self.world.get_object(i).get_object_type() == ObjectType::SkinnedMesh {
+                for bone_index in 0..20 {
                     self.bones[i][bone_index].rotation.1 += 0.01;
                 }
                 self.update_bones(i);
-            }
+            }*/
         }
 
         // update skybox positions

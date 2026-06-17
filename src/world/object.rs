@@ -32,6 +32,7 @@ pub struct Object {
     materials: HashMap<String, Material>,
     displacement_texture: String,
     bones: Vec<Transform>,
+    skeleton: HashMap<String, usize>,
     movable: bool,
     tag: String
 }
@@ -46,6 +47,7 @@ impl Object {
             materials,
             displacement_texture: "None".to_string(),
             bones: Vec::new(),
+            skeleton: HashMap::new(),
             movable: false,
             tag: "unnamed".to_string()
         }
@@ -84,6 +86,7 @@ impl Object {
         let mut bones_converted: Vec<Transform> = new_bone_vec(bones.len());
         for bone in bones.values() {
             if bone.0 > bones_converted.len() { continue; }
+            //println!("{} {} {}", bone.1.position.0, bone.1.position.1, bone.1.position.2);
             bones_converted[bone.0] = Transform { position: position, rotation: rotation, scale: scale };
         }
         self.bones = bones_converted;

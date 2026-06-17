@@ -47,8 +47,9 @@ fn vs_main(
         + bone_weight.y * bones.matrices[u32(bone_index.y)]
         + bone_weight.z * bones.matrices[u32(bone_index.z)]
         + bone_weight.w * bones.matrices[u32(bone_index.w)];
-
-    let m_position:vec4<f32> = skin_mat * model.model_mat * displaced_pos;
+    let skinned_pos = skin_mat * displaced_pos;
+    
+    let m_position:vec4<f32> = model.model_mat * skinned_pos;
     output.position = uniforms.view_project_mat * m_position;
     output.v_position = m_position;
     output.v_normal =  model.normal_mat * normal;
