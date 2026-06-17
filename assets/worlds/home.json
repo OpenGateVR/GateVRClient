@@ -4,7 +4,11 @@
     "creator": "theCaely",
 
     "objects": [
-        {"static": true, "reference": "models/table.fbx", "transform": {"position": [0, 0, 0]}},
-        {"static": true, "reference": "models/table.fbx", "transform": {"position": [-2, 0, 0]}}
+        {"is_static": true, "reference": "models/base.fbx", "texture": "textures/wall.jpg", "transform": {"position": [0, 1.5, 0], "scale": [1.0, 0.5, 1.0]}},
+        {"is_static": true, "reference": "models/table.fbx", "transform": {"position": [5, 2, 0]}},
+        {"is_static": true, "reference": "models/table.fbx", "transform": {"position": [2.5, 2, 0]}},
+        {"is_static": true, "reference": "models/table.fbx", "transform": {"position": [0, 2, 0]}},
+        {"is_static": true, "reference": "models/table.fbx", "transform": {"position": [-2.5, 2, 0]}},
+        {"is_static": true, "reference": "models/table.fbx", "transform": {"position": [-5, 2, 0]}}
     ]
 }

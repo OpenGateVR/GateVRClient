@@ -8,6 +8,7 @@ pub enum ObjectType {
     Camera,
     Sphere,
     Mesh,
+    StaticMesh,
     SkinnedMesh,
     Skybox,
     Grabbable,
@@ -53,8 +54,11 @@ impl Object {
         }
     }
 
-    pub fn add_material(&mut self, material: Material, name: &str) {
-        self.materials.insert(name.to_string(), material);
+    pub fn add_material(&mut self, material: Material, name: String) {
+        self.materials.insert(name, material);
+    }
+    pub fn add_meshes(&mut self, meshes: Vec<(Vec<Vertex>, String)>) {
+        self.vertices.extend(meshes);
     }
 
     pub fn set_position(&mut self, position: (f32, f32, f32)) {

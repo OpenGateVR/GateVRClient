@@ -1,4 +1,4 @@
-use crate::world::object::{Object, ObjectType};
+use crate::{renderer::vertex::create_vertices_skinned, world::{material::Material, object::{Object, ObjectType}, objects::fbx_parser::parse, scene::load_scene}};
 
 pub struct World {
     pub objects: Vec<Object>,
@@ -32,6 +32,46 @@ impl World {
     }
     pub fn get_cameras(&self) -> &Vec<Object> {
         &self.cameras
+    }
+
+    pub fn load_world(&mut self, path: &str) {
+        let scene = load_scene(path);
+        if let Ok(scene) = scene {
+            let mut static_world_object = Object::create(
+                ObjectType::StaticMesh,
+                Vec::new()
+            );
+
+            for scene_object in scene.objects {
+                let model_parsed = parse(&scene_object.reference,
+                    (scene_object.transform.position[0], scene_object.transform.position[1], scene_object.transform.position[2]),
+                    (scene_object.transform.scale[0], scene_object.transform.scale[1], scene_object.transform.scale[2]),
+                    (scene_object.transform.rotation[0], scene_object.transform.rotation[1], scene_object.transform.rotation[2])
+                );
+
+                if scene_object.is_static {
+                    let mut vertices = create_vertices_skinned(&model_parsed.0);
+                    for mesh in &mut vertices {
+                        if mesh.1 == "default" {
+                            mesh.1 = format!("material{}", static_world_object.get_materials().len());
+                        }
+                    }
+                    let material_name = format!("material{}", static_world_object.get_materials().len());
+                    static_world_object.add_material(Material::from_texture(&scene_object.texture), material_name);
+                    static_world_object.add_meshes(vertices);
+                } else {
+                    let object = Object::create(
+                        ObjectType::Mesh,
+                        create_vertices_skinned(&model_parsed.0)
+                    );
+                    self.add_object(object);
+                }
+            }
+
+            self.add_object(static_world_object);
+        } else {
+            println!("Error while loading scene");
+        }
     }
 }
 

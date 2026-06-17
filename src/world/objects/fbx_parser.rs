@@ -837,7 +837,7 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
                 v[0] += position.0 + transform.translation.0;
                 v[1] += position.1 + transform.translation.1;
                 v[2] += position.2 + transform.translation.2;
-                
+
                 let (bone_ids, weights) = pack_weights(&vertex_weights[tri[0]], &bone_map);
 
                 mesh_data[mesh_data_index].0.push(SkinnedVertex{ position: v, bone_ids, weights});
@@ -847,7 +847,7 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
                 ]);
                 mesh_data[mesh_data_index].1.push([0, 1, 0]);
                 mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
-                
+
                 let mut v = [
                     mesh.vertices[tri[1]*3] as f32 * scale.0 * transform.scaling.0,
                     mesh.vertices[tri[1]*3+1] as f32 * scale.2 * transform.scaling.2,
@@ -864,7 +864,7 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
                 v[2] += position.2 + transform.translation.2;
 
                 let (bone_ids, weights) = pack_weights(&vertex_weights[tri[1]], &bone_map);
-                
+
                 mesh_data[mesh_data_index].0.push(SkinnedVertex { position: v, bone_ids, weights });
                 mesh_data[mesh_data_index].3.push([
                     mesh.uv[tri[4] * 2] as f32, 
