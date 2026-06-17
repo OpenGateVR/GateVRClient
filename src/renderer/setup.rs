@@ -10,12 +10,12 @@ pub fn start_engine(world: World) {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
-    window.set_title("GateVR");
+    window.set_title("Caevern");
 
     let (job_tx, job_rx) = mpsc::channel::<LocalUserUpdate>();
     //let (result_tx, result_rx) = mpsc::channel::<UsersUpdate>();
 
-    let mut renderer = pollster::block_on(Renderer::new(&window, job_tx));    
+    let mut renderer = pollster::block_on(Renderer::new(&window, job_tx));
     let render_start_time = std::time::Instant::now();
 
     let mut mouse_locked = false;
@@ -28,7 +28,7 @@ pub fn start_engine(world: World) {
     let mut menu_tablet_state = 0;
 
     start_user_handler(job_rx);
-    
+
     renderer.set_world(world);
 
     event_loop.run(move |event, _, control_flow| {
