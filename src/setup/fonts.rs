@@ -33,7 +33,7 @@ pub fn load_font_atlas(path: &str) -> DynamicImage {
     for (_, metrics, bitmap) in glyphs {
         let glyph_width = metrics.width as u32;
         let glyph_height = metrics.height as u32;
-        
+
         let y_offset = atlas_height as u32 - glyph_height;
 
         for y in 0..glyph_height {
@@ -80,9 +80,9 @@ pub fn load_font_uvs(path: &str) -> HashMap<String, (f32, f32, f32, f32, f32)> {
         let glyph_width = metrics.width as u32;
 
         mapped_characters.insert(c.to_string(), (
-            x_offset as f32 / atlas_width as f32, 
-            0.0, 
-            (x_offset + glyph_width) as f32 / atlas_width as f32, 
+            x_offset as f32 / atlas_width as f32,
+            0.0,
+            (x_offset + glyph_width) as f32 / atlas_width as f32,
             1.0,
             (metrics.ymin as f32 / atlas_height as f32) * 2.0)
         );

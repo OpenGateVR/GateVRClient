@@ -103,7 +103,7 @@ impl Renderer {
             },
             displacement_texture_size,
         );
-        
+
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let displacement_texture_view = displacement_texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = init.device.create_sampler(&wgpu::SamplerDescriptor {
@@ -389,6 +389,7 @@ impl Renderer {
 
         // create missing texture
         textures.insert("textures/missing.png".to_string(), TextureObject::create("textures/missing.png", &init));
+        textures.insert("textures/tablet.png".to_string(), TextureObject::create("textures/tablet.png", &init));
 
         // create font atlasses
         textures.insert("fonts/NotoSansJP.ttf".to_string(), TextureObject::load_from_dynamic_image(load_font_atlas("fonts/NotoSansJP.ttf"), &init));
@@ -403,10 +404,12 @@ impl Renderer {
         textures.insert("textures/wall.jpg".to_string(), TextureObject::create("textures/wall.jpg", &init));
         textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
         textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
-        textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
-        textures.insert("textures/Selestia_hair.png".to_string(), TextureObject::create("textures/Selestia_hair.png", &init));
-        textures.insert("textures/Selestia_body.png".to_string(), TextureObject::create("textures/Selestia_body.png", &init));
-        textures.insert("textures/Selestia_face.png".to_string(), TextureObject::create("textures/Selestia_face.png", &init));
+        textures.insert("textures/brick.jpg".to_string(), TextureObject::create("textures/brick.jpg", &init));
+        textures.insert("textures/brick_displace.png".to_string(), TextureObject::create("textures/brick_displace.png", &init));
+        //textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
+        //textures.insert("textures/Selestia_hair.png".to_string(), TextureObject::create("textures/Selestia_hair.png", &init));
+        //textures.insert("textures/Selestia_body.png".to_string(), TextureObject::create("textures/Selestia_body.png", &init));
+        //textures.insert("textures/Selestia_face.png".to_string(), TextureObject::create("textures/Selestia_face.png", &init));
 
         let mut font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32, f32)>> = HashMap::new();
 
@@ -598,20 +601,20 @@ impl Renderer {
 
         let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
-        
+
         self.init.queue.write_buffer(&self.vertex_uniform_buffer, 64, bytemuck::cast_slice(view_projection_ref));
 
         let current_time_updated = std::time::Instant::now();
         let update_time = current_time_updated.duration_since(current_time).as_secs_f32();
-        
+
         // update ingame fps label when menu tablet is enabled
         if menu_tablet_state == 1 && self.frame % 60 == 0 {
             for (index, object) in self.world.get_objects().iter().enumerate() {
                 match object.get_tag() {
                     "fps_label" => {
                         let fps_label = text::create_plane_with_text(
-                        (-0.4, -0.3, -0.02), (0.02, 0.02, 1.0), 
-                        &self.font_maps["NotoSansJP"], &format!("FPS: {}", (1.0 / update_time).round())
+                        (-0.5, -0.3, -0.02), (0.02, 0.02, 1.0),
+                        &self.font_maps["NotoSansJP"], [1.0, 1.0, 1.0], &format!("FPS: {}", (1.0 / update_time).round())
                         );
                         let meshes = vertex::create_vertices(&fps_label);
                         for (vertices, _) in meshes {
@@ -628,8 +631,8 @@ impl Renderer {
                     }
                     "ram_label" => {
                         let ram_label = text::create_plane_with_text(
-                        (-0.4, -0.2, -0.02), (0.02, 0.02, 1.0), 
-                        &self.font_maps["NotoSansJP"], &format!("RAM: {:.2} MB", ALLOCATOR.allocated() as f32 / 1000000.0)
+                        (-0.5, -0.2, -0.02), (0.02, 0.02, 1.0),
+                        &self.font_maps["NotoSansJP"], [1.0, 1.0, 1.0], &format!("RAM: {:.2} MB", ALLOCATOR.allocated() as f32 / 1000000.0)
                         );
                         let meshes = vertex::create_vertices(&ram_label);
                         for (vertices, _) in meshes {
@@ -652,12 +655,13 @@ impl Renderer {
         self.frame += 1;
     }
 
+    #[allow(dead_code)]
     pub fn update_bones(&mut self, object_index: usize) {
         let mut bones: Vec<[[f32; 4]; 4]> = Vec::new();
         for bone in self.bones[object_index].iter() {
             bones.push(transforms::create_transforms(
-                bone.position.into(), 
-                bone.rotation.into(), 
+                bone.position.into(),
+                bone.rotation.into(),
                 bone.scale.into()
             ).into());
         }
@@ -678,18 +682,18 @@ impl Renderer {
             self.vertex_buffers.push(Vec::new());
             self.uniform_bind_groups.push(Vec::new());
             self.num_vertices.push(Vec::new());
-            
+
             let bone_transforms = object.1.get_bones();
             self.bones.push(bone_transforms.clone());
 
             for bone in bone_transforms {
                 bones.push(transforms::create_transforms(
-                    bone.position.into(), 
-                    bone.rotation.into(), 
+                    bone.position.into(),
+                    bone.rotation.into(),
                     bone.scale.into()
                 ).into());
             }
-            
+
             let bone_buffer;
             if bones.len() > 0 {
                 println!("{}", object.0);

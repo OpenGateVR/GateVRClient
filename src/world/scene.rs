@@ -22,11 +22,18 @@ pub struct Object {
     #[serde(default = "default_texture")]
     pub texture: String,
 
+    #[serde(default = "default_displace")]
+    pub displace: String,
+
     pub transform: Transform,
 }
 
 fn default_texture() -> String {
     "textures/missing.png".to_string()
+}
+
+fn default_displace() -> String {
+    "".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]
