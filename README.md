@@ -16,9 +16,11 @@ Custom engine? Of course! :D
 - [x] Bone implementation
 - [ ] Animation importing FBX
 - [x] Font importer
+- [ ] World data file loader
 - [ ] Unity exporting plugin (for making worlds and avatars)
 - [ ] Mirror system
 - [ ] Video system
+- [ ] Portal system
 
 # Todo List Server:
 - [x] Player location data
@@ -30,3 +32,4 @@ Custom engine? Of course! :D
 # Todo List Future:
 - [ ] Self hosting (with relay system for safety)
 - [ ] Foviated rendering
+- [ ] LOD system

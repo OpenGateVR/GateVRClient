@@ -1,0 +1,10 @@
+{
+    "name": "home",
+    "id": 0,
+    "creator": "theCaely",
+
+    "objects": [
+        {"static": true, "reference": "models/table.fbx", "transform": {"position": [0, 0, 0]}},
+        {"static": true, "reference": "models/table.fbx", "transform": {"position": [-2, 0, 0]}}
+    ]
+}
