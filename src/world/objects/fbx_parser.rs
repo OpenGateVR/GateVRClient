@@ -43,6 +43,40 @@ struct Transform {
     object: ObjectType
 }
 
+pub struct Keyframe {
+    pub time: f32,
+    pub transform: transform::Transform
+}
+
+pub struct BoneAnimation {
+    pub bone_id: i64,
+    pub keyframes: Vec<Keyframe>
+}
+
+#[derive(Debug)]
+pub struct AnimationCurve {
+    pub id: i64,
+    pub times: Vec<i64>,
+    pub values: Vec<f32>,
+}
+
+#[derive(Debug)]
+pub struct AnimationCurveNode {
+    pub id: i64,
+    pub property: String,
+}
+
+#[derive(Debug)]
+pub struct AnimationLayer {
+    pub id: i64,
+}
+
+#[derive(Debug)]
+pub struct AnimationStack {
+    pub id: i64,
+    pub name: String,
+}
+
 struct Connection {
     from: i64,
     to: i64,
@@ -199,6 +233,154 @@ fn parse_skins(node: &Node) -> HashSet<i64> {
     }
 
     skins
+}
+
+fn parse_animation_curves(node: &Node)
+    -> HashMap<i64, AnimationCurve>
+{
+    let mut curves = HashMap::new();
+
+    if node.name != "Objects" {
+        return curves;
+    }
+
+    for child in &node.children {
+        if child.name != "AnimationCurve" {
+            continue;
+        }
+
+        let id = get_id(child).unwrap_or(0);
+
+        let mut times = Vec::new();
+        let mut values = Vec::new();
+
+        for sub in &child.children {
+            match sub.name.as_str() {
+                "KeyTime" => {
+                    for prop in &sub.properties {
+                        if let Property::I64Array(arr) = prop {
+                            times.extend(arr);
+                        }
+                    }
+                }
+
+                "KeyValueFloat" => {
+                    for prop in &sub.properties {
+                        match prop {
+                            Property::F32Array(arr) => {
+                                values.extend(arr.iter().copied());
+                            }
+
+                            Property::F64Array(arr) => {
+                                values.extend(
+                                    arr.iter()
+                                        .map(|v| *v as f32)
+                                );
+                            }
+
+                            _ => {}
+                        }
+                    }
+                }
+
+                _ => {}
+            }
+        }
+
+        curves.insert(id, AnimationCurve {
+            id,
+            times,
+            values,
+        });
+    }
+
+    curves
+}
+
+fn parse_curve_nodes(node: &Node)
+    -> HashMap<i64, AnimationCurveNode>
+{
+    let mut nodes = HashMap::new();
+
+    if node.name != "Objects" {
+        return nodes;
+    }
+
+    for child in &node.children {
+        if child.name != "AnimationCurveNode" {
+            continue;
+        }
+
+        let id = get_id(child).unwrap_or(0);
+
+        let property =
+            match child.properties.get(1) {
+                Some(Property::String(s)) => s.clone(),
+                _ => String::new(),
+            };
+
+        nodes.insert(id, AnimationCurveNode {
+            id,
+            property,
+        });
+    }
+
+    nodes
+}
+
+fn parse_animation_stacks(node: &Node)
+    -> HashMap<i64, AnimationStack>
+{
+    let mut stacks = HashMap::new();
+
+    if node.name != "Objects" {
+        return stacks;
+    }
+
+    for child in &node.children {
+        if child.name != "AnimationStack" {
+            continue;
+        }
+
+        let id = get_id(child).unwrap_or(0);
+
+        let name =
+            match child.properties.get(1) {
+                Some(Property::String(s)) => s.clone(),
+                _ => "Unnamed".into(),
+            };
+
+        stacks.insert(id, AnimationStack {
+            id,
+            name,
+        });
+    }
+
+    stacks
+}
+
+fn parse_animation_layers(node: &Node)
+    -> HashMap<i64, AnimationLayer>
+{
+    let mut layers = HashMap::new();
+
+    if node.name != "Objects" {
+        return layers;
+    }
+
+    for child in &node.children {
+        if child.name != "AnimationLayer" {
+            continue;
+        }
+
+        let id = get_id(child).unwrap_or(0);
+
+        layers.insert(id, AnimationLayer {
+            id,
+        });
+    }
+
+    layers
 }
 
 fn traverse_nodes(node: &Node) -> Vec<Mesh> {
@@ -450,6 +632,30 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
     for node in &file.children {
         skins.extend(parse_skins(node));
     }
+    for node in &file.children {
+        let animation_stack = parse_animation_stacks(node);
+        for animation in animation_stack {
+            println!("{} {}", animation.0, animation.1.name);
+        }
+    }
+    for node in &file.children {
+        let animation_layer = parse_animation_layers(node);
+        for animation in animation_layer {
+            println!("{}", animation.0);
+        }
+    }
+    /*for node in &file.children {
+        let animation_curve_node = parse_curve_nodes(node);
+        for animation in animation_curve_node {
+            println!("{} {}", animation.0, animation.1.property);
+        }
+    }
+    for node in &file.children {
+        let animation_curve = parse_animation_curves(node);
+        for animation in animation_curve {
+            println!("{} {} {}", animation.0, animation.1.times.len(), animation.1.values.len());
+        }
+    }*/
 
     for node in &file.children {
         if node.name == "Objects" {

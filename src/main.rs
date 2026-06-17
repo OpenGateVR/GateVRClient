@@ -63,7 +63,7 @@ fn main() {
     ground_sphere_object.set_displacement("textures/ground_displacement.png");
     world.add_object(ground_sphere_object);*/
 
-    let niko = parse("models/niko.fbx", (0.0, 0.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
+    let niko = parse("models/nikoAnimated.fbx", (0.0, 0.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
     let mut niko_object = Object::create(
         ObjectType::SkinnedMesh,
         renderer::vertex::create_vertices_skinned(&niko.0)
