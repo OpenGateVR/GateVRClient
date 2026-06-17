@@ -4,6 +4,8 @@ use fbx::Property;
 use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Cursor};
 
+use crate::renderer::transform;
+
 #[derive(RustEmbed)]
 #[folder = "assets/"]
 struct Assets;
@@ -32,9 +34,9 @@ pub enum ObjectType {
 
 #[derive(Debug)]
 struct Transform {
-    translation: (f64, f64, f64),
-    rotation: (f64, f64, f64),
-    scaling: (f64, f64, f64),
+    translation: (f32, f32, f32),
+    rotation: (f32, f32, f32),
+    scaling: (f32, f32, f32),
     name: String,
     id: i64,
     parent: i64,
@@ -55,12 +57,12 @@ struct Cluster {
 }
 
 pub struct SkinnedVertex {
-    pub position: [f64; 3],
+    pub position: [f32; 3],
     pub bone_ids: [u32; 4],
     pub weights: [f32; 4],
 }
 
-fn rotate_x(v: [f64; 3], angle: f64) -> [f64; 3] {
+fn rotate_x(v: [f32; 3], angle: f32) -> [f32; 3] {
     let (s, c) = angle.sin_cos();
     [
         v[0],
@@ -69,7 +71,7 @@ fn rotate_x(v: [f64; 3], angle: f64) -> [f64; 3] {
     ]
 }
 
-fn rotate_y(v: [f64; 3], angle: f64) -> [f64; 3] {
+fn rotate_y(v: [f32; 3], angle: f32) -> [f32; 3] {
     let (s, c) = angle.sin_cos();
     [
         v[0] * c + v[2] * s,
@@ -78,7 +80,7 @@ fn rotate_y(v: [f64; 3], angle: f64) -> [f64; 3] {
     ]
 }
 
-fn rotate_z(v: [f64; 3], angle: f64) -> [f64; 3] {
+fn rotate_z(v: [f32; 3], angle: f32) -> [f32; 3] {
     let (s, c) = angle.sin_cos();
     [
         v[0] * c - v[1] * s,
@@ -320,9 +322,9 @@ fn get_transform(node: &Node) -> Option<Transform> {
                                 let idx = 4 + i;
                                 if let Some(prop) = p.properties.get(idx) {
                                     *n = match prop {
-                                        Property::F64(v) => *v,
-                                        Property::I32(v) => *v as f64,
-                                        Property::I64(v) => *v as f64,
+                                        Property::F64(v) => *v as f32,
+                                        Property::I32(v) => *v as f32,
+                                        Property::I64(v) => *v as f32,
                                         _ => 0.0,
                                     };
                                 }
@@ -397,7 +399,7 @@ fn parse_materials(node: &Node) -> HashMap<i64, Material> {
 
 fn pack_weights(
     influences: &[(i64, f32)],
-    bone_map: &HashMap<i64, usize>,
+    bone_map: &HashMap<i64, (usize, transform::Transform)>,
 ) -> ([u32; 4], [f32; 4]) {
 
     let mut ids = [0u32; 4];
@@ -411,7 +413,7 @@ fn pack_weights(
     for (i, (bone_id, weight))
         in sorted.iter().take(4).enumerate()
     {
-        ids[i] = bone_map[bone_id] as u32;
+        ids[i] = bone_map[bone_id].0 as u32;
         weights[i] = *weight;
     }
 
@@ -426,7 +428,7 @@ fn pack_weights(
     (ids, weights)
 }
 
-pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rotation: (f64, f64, f64)) -> Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> {
+pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rotation: (f32, f32, f32)) -> (Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>, HashMap<i64, (usize, transform::Transform)>) {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
     let mut reader = BufReader::new(cursor);
@@ -499,7 +501,13 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
 
     let bones: Vec<_> = transforms.values().filter(|t| t.object == ObjectType::Bone).collect();
     for (index, bone) in bones.iter().enumerate() {
-        bone_map.insert(bone.id, index);
+        bone_map.insert(bone.id, (index, 
+            transform::Transform{
+                position: ( bone.translation.0, bone.translation.1, bone.translation.2 ),
+                rotation: ( bone.rotation.0, bone.rotation.1, bone.rotation.2 ),
+                scale: ( bone.scaling.0, bone.scaling.1, bone.scaling.2 ),
+            }
+        ));
     }
 
     for (geom, cluster_ids) in &geometry_clusters {
@@ -527,7 +535,7 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
         let meshes = traverse_nodes(node);
         for (index, mesh) in meshes.iter().enumerate() {
             let mut transform = &Transform{
-                translation: (3.0 * index as f64, 0.0, 0.0),
+                translation: (3.0 * index as f32, 0.0, 0.0),
                 rotation: (0.0, 0.0, 0.0),
                 scaling: (0.0, 0.0, 0.0),
                 name: "Unknown".to_string(),
@@ -610,9 +618,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
 
             for tri in triangles {
                 let mut v = [
-                    mesh.vertices[tri[0]*3] * scale.0 * transform.scaling.0,
-                    mesh.vertices[tri[0]*3+1] * scale.2 * transform.scaling.2,
-                    mesh.vertices[tri[0]*3+2] * scale.1 * transform.scaling.1,
+                    mesh.vertices[tri[0]*3] as f32 * scale.0 * transform.scaling.0,
+                    mesh.vertices[tri[0]*3+1] as f32 * scale.2 * transform.scaling.2,
+                    mesh.vertices[tri[0]*3+2] as f32 * scale.1 * transform.scaling.1,
                 ];
 
                 v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
@@ -625,7 +633,6 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 v[2] += position.2 + transform.translation.2;
                 
                 let (bone_ids, weights) = pack_weights(&vertex_weights[tri[0]], &bone_map);
-                //println!("{} {} {} {}", bone_ids[0], bone_ids[1], bone_ids[2], bone_ids[3]);
 
                 mesh_data[mesh_data_index].0.push(SkinnedVertex{ position: v, bone_ids, weights});
                 mesh_data[mesh_data_index].3.push([
@@ -636,9 +643,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
                 
                 let mut v = [
-                    mesh.vertices[tri[1]*3] * scale.0 * transform.scaling.0,
-                    mesh.vertices[tri[1]*3+1] * scale.2 * transform.scaling.2,
-                    mesh.vertices[tri[1]*3+2] * scale.1 * transform.scaling.1,
+                    mesh.vertices[tri[1]*3] as f32 * scale.0 * transform.scaling.0,
+                    mesh.vertices[tri[1]*3+1] as f32 * scale.2 * transform.scaling.2,
+                    mesh.vertices[tri[1]*3+2] as f32 * scale.1 * transform.scaling.1,
                 ];
 
                 v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
@@ -661,9 +668,9 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
                 mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
 
                 let mut v = [
-                    mesh.vertices[tri[2]*3] * scale.0 * transform.scaling.0,
-                    mesh.vertices[tri[2]*3+1] * scale.2 * transform.scaling.2,
-                    mesh.vertices[tri[2]*3+2] * scale.1 * transform.scaling.1,
+                    mesh.vertices[tri[2]*3] as f32 * scale.0 * transform.scaling.0,
+                    mesh.vertices[tri[2]*3+1] as f32 * scale.2 * transform.scaling.2,
+                    mesh.vertices[tri[2]*3+2] as f32 * scale.1 * transform.scaling.1,
                 ];
 
                 v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
@@ -692,5 +699,5 @@ pub fn parse(path: &str, position: (f64, f64, f64), scale: (f64, f64, f64), rota
         }
     }
 
-    mesh_data
+    (mesh_data, bone_map)
 }

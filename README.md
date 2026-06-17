@@ -12,7 +12,8 @@ Custom engine? Of course! :D
 - [x] Mesh importing FBX
 - [x] Material importing FBX
 - [x] Material displacement
-- [ ] Bone importing FBX
+- [x] Bone importing FBX
+- [ ] Bone implementation
 - [x] Font importer
 - [ ] Unity exporting plugin (for making worlds and avatars)
 - [ ] Mirror system

@@ -1,5 +1,5 @@
-pub fn create_plane_with_index(position: (f64, f64, f64), scale: (f64, f64, f64), atlas_size: (f32, f32), atlas_index: f32) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
-    let mut vertices: Vec<[f64; 3]> = Vec::new();
+pub fn create_plane_with_index(position: (f32, f32, f32), scale: (f32, f32, f32), atlas_size: (f32, f32), atlas_index: f32) -> (Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
+    let mut vertices: Vec<[f32; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
     let mut uvs: Vec<[f32; 2]> = Vec::new();
@@ -40,8 +40,8 @@ pub fn create_plane_with_index(position: (f64, f64, f64), scale: (f64, f64, f64)
     return (vertices, uvs, normals, colors);
 }
 
-pub fn create_plane_with_uv(position: (f64, f64, f64), scale: (f64, f64, f64), from: (f32, f32), to: (f32, f32)) -> (Vec<[f64; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
-    let mut vertices: Vec<[f64; 3]> = Vec::new();
+pub fn create_plane_with_uv(position: (f32, f32, f32), scale: (f32, f32, f32), from: (f32, f32), to: (f32, f32)) -> (Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<[i8; 3]>, Vec<[f32; 3]>) {
+    let mut vertices: Vec<[f32; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
     let mut uvs: Vec<[f32; 2]> = Vec::new();

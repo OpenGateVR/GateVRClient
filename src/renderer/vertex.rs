@@ -29,9 +29,9 @@ impl Vertex {
 
 // Convert vertices to set vertex size
 #[allow(dead_code)]
-fn vertex(p:[f64;3], n:[i8; 3], c:[f32; 3], u:[f32; 2], bi: [u32; 4], bw: [f32; 4]) -> Vertex {
+fn vertex(p:[f32;3], n:[i8; 3], c:[f32; 3], u:[f32; 2], bi: [u32; 4], bw: [f32; 4]) -> Vertex {
     return Vertex {
-        position: [p[0] as f32, p[1] as f32, p[2] as f32, 1.0],
+        position: [p[0], p[1], p[2], 1.0],
         normal: [n[0] as f32, n[1] as f32, n[2] as f32, 1.0],
         color: [c[0], c[1], c[2], 1.0],
         uv: [u[0], u[1], 0.0, 0.0],
@@ -41,7 +41,7 @@ fn vertex(p:[f64;3], n:[i8; 3], c:[f32; 3], u:[f32; 2], bi: [u32; 4], bw: [f32; 
 }
 
 // Convert object to list of vertices
-pub fn create_vertices(meshes: &Vec<(Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>) -> Vec<(Vec<Vertex>, String)> {
+pub fn create_vertices(meshes: &Vec<(Vec<[f32; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>) -> Vec<(Vec<Vertex>, String)> {
     let mut vertex_list: Vec<(Vec<Vertex>, String)> = Vec::with_capacity(meshes.len());
     for mesh in 0..meshes.len() {
         let vertices = &meshes[mesh].0;

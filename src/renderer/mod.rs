@@ -1,5 +1,7 @@
-mod render;
 pub mod vertex;
-mod transforms;
 pub mod setup;
+pub mod transform;
+
+mod render;
+mod transforms;
 mod texture_object;

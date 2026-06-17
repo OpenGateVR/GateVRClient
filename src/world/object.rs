@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{renderer::vertex::Vertex, world::material::Material};
+use crate::{renderer::{transform::Transform, vertex::Vertex}, world::material::Material};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ObjectType {
@@ -8,22 +8,30 @@ pub enum ObjectType {
     Camera,
     Sphere,
     Mesh,
+    SkinnedMesh,
     Skybox,
     Grabbable,
     TabletMenu,
     TabletMenuButton
 }
 
+fn new_bone_vec(amount: usize) -> Vec<Transform> {
+    let mut bones = Vec::new();
+    for _ in 0..amount {
+        bones.push(Transform::zero());
+    }
+    bones
+}
+
 // this is a game object, and will be used to render the vertices
 #[derive(Clone)]
 pub struct Object {
     object_type: ObjectType,
-    position: (f64, f64, f64),
-    size: (f32, f32, f32),
-    rotation: (f32, f32, f32),
+    transform: Transform,
     vertices: Vec<(Vec<Vertex>, String)>,
     materials: HashMap<String, Material>,
     displacement_texture: String,
+    bones: Vec<Transform>,
     movable: bool,
     tag: String
 }
@@ -33,12 +41,11 @@ impl Object {
         materials.insert("default".to_string(), Material { texture: "textures/missing.png".to_string(), displacement: "".to_string() });
         Self {
             object_type: object_type,
-            position: (0.0, 0.0, 0.0),
-            size: (0.0, 0.0, 0.0),
-            rotation: (0.0, 0.0, 0.0),
+            transform: Transform::zero(),
             vertices: meshes,
             materials,
             displacement_texture: "None".to_string(),
+            bones: Vec::new(),
             movable: false,
             tag: "unnamed".to_string()
         }
@@ -48,17 +55,17 @@ impl Object {
         self.materials.insert(name.to_string(), material);
     }
 
-    pub fn set_position(&mut self, position: (f64, f64, f64)) {
-        self.position = position;
+    pub fn set_position(&mut self, position: (f32, f32, f32)) {
+        self.transform.position = position;
     }
     pub fn set_size(&mut self, size: (f32, f32, f32)) {
-        self.size = size;
+        self.transform.scale = size;
     }
     pub fn set_rotation(&mut self, rotation: (f32, f32, f32)) {
-        self.rotation = rotation;
+        self.transform.rotation = rotation;
     }
     pub fn set_rotation_y(&mut self, rotation: f32) {
-        self.rotation.1 = rotation;
+        self.transform.rotation.1 = rotation;
     }
     pub fn set_vertices(&mut self, vertices: Vec<(Vec<Vertex>, String)>) {
         self.vertices = vertices;
@@ -70,6 +77,16 @@ impl Object {
         for material in self.materials.values_mut() {
             material.displacement = texture.to_string();
         }
+    }
+    pub fn set_bones(&mut self, bones: HashMap<i64, (usize, Transform)>, 
+        position: (f32, f32, f32), rotation: (f32, f32, f32), scale: (f32, f32, f32)
+    ) {
+        let mut bones_converted: Vec<Transform> = new_bone_vec(bones.len());
+        for bone in bones.values() {
+            if bone.0 > bones_converted.len() { continue; }
+            bones_converted[bone.0] = Transform { position: position, rotation: rotation, scale: scale };
+        }
+        self.bones = bones_converted;
     }
     pub fn set_movable(&mut self, value: bool) {
         self.movable = value;
@@ -90,14 +107,17 @@ impl Object {
     pub fn get_displacement(&self) -> &str {
         &self.displacement_texture
     }
+    pub fn get_bones(&self) -> &Vec<Transform> {
+        &self.bones
+    }
     pub fn get_movable(&self) -> bool {
         self.movable
     }
-    pub fn get_position(&self) -> (f64, f64, f64) {
-        self.position
+    pub fn get_position(&self) -> (f32, f32, f32) {
+        self.transform.position
     }
     pub fn get_rotation(&self) -> (f32, f32, f32) {
-        self.rotation
+        self.transform.rotation
     }
     pub fn get_tag(&self) -> &str {
         &self.tag

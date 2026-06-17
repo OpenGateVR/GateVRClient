@@ -9,10 +9,15 @@ struct Model {
     normal_mat : mat4x4<f32>
 };
 
+struct Bones {
+    matrices: array<mat4x4<f32>>,
+};
+
 @binding(0) @group(0) var<uniform> uniforms : Uniforms;
 @binding(4) @group(0) var displacement_tex: texture_2d<f32>;
 @binding(5) @group(0) var displacement_sampler: sampler;
 @binding(6) @group(0) var<uniform> model : Model;
+@binding(7) @group(0) var<storage, read> bones: Bones;
 
 struct Output {
     @builtin(position) position : vec4<f32>,

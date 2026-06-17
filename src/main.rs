@@ -24,7 +24,7 @@ fn main() {
     let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0), (0.0, 0.0, 0.0));
     let mut skybox_object = Object::create(
         ObjectType::Skybox,
-        renderer::vertex::create_vertices_skinned(&skybox)
+        renderer::vertex::create_vertices_skinned(&skybox.0)
     );
     skybox_object.set_default_texture("textures/skybox_2.png");
     skybox_object.set_movable(true);
@@ -41,7 +41,7 @@ fn main() {
     let table = parse("models/table.fbx", (0.0, 2.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
     let mut table_object = Object::create(
         ObjectType::Mesh,
-        renderer::vertex::create_vertices_skinned(&table)
+        renderer::vertex::create_vertices_skinned(&table.0)
     );
     table_object.set_default_texture("textures/table.png");
     world.add_object(table_object);
@@ -49,7 +49,7 @@ fn main() {
     let ground = parse("models/plane.fbx", (0.0, 2.0, 0.0), (5.0, 2.0, 5.0), (0.0, 0.0, 0.0));
     let mut ground_object = Object::create(
         ObjectType::Mesh,
-        renderer::vertex::create_vertices_skinned(&ground)
+        renderer::vertex::create_vertices_skinned(&ground.0)
     );
     ground_object.set_default_texture("textures/ground.jpg");
     ground_object.set_displacement("textures/ground_displacement.png");
@@ -63,11 +63,12 @@ fn main() {
     ground_sphere_object.set_displacement("textures/ground_displacement.png");
     world.add_object(ground_sphere_object);*/
 
-    let niko = parse("models/niko.fbx", (0.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
+    let niko = parse("models/niko.fbx", (0.0, 0.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0));
     let mut niko_object = Object::create(
-        ObjectType::Mesh,
-        renderer::vertex::create_vertices_skinned(&niko)
+        ObjectType::SkinnedMesh,
+        renderer::vertex::create_vertices_skinned(&niko.0)
     );
+    niko_object.set_bones(niko.1, (0.0, 2.0, -2.0), (0.0, 0.0, 0.0), (2.0, 2.0, 2.0));
     niko_object.add_material(Material::from_texture("textures/niko.png"), "NikoMaterial");
     world.add_object(niko_object);
 

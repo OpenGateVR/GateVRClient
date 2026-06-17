@@ -9,7 +9,7 @@ use std::sync::mpsc::Sender;
 use crate::interract::raycast::raycast_grab;
 use crate::physics::movement::{get_camera_movement, get_camera_rotation};
 use crate::renderer::texture_object::TextureObject;
-use crate::renderer::{transforms, vertex};
+use crate::renderer::{transform, transforms, vertex};
 use crate::renderer::vertex::Vertex;
 use crate::setup::fonts::{load_font_atlas, load_font_uvs};
 use crate::world::object::ObjectType;
@@ -17,6 +17,11 @@ use crate::world::objects::text;
 use crate::world::world::World;
 use crate::network::users::{LocalUserUpdate, Transform};
 use crate::ALLOCATOR;
+
+#[derive(PartialEq)]
+pub enum ShaderType {
+    Displacement, DisplacementBones
+}
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
@@ -35,6 +40,9 @@ pub struct Renderer {
     vertex_buffers: Vec<Vec<wgpu::Buffer>>,
     uniform_bind_groups: Vec<Vec<wgpu::BindGroup>>,
     num_vertices: Vec<Vec<u32>>,
+    bone_buffers: Vec<wgpu::Buffer>,
+    bones: Vec<Vec<transform::Transform>>,
+    shader_type: Vec<ShaderType>,
 
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     vertex_uniform_buffer: wgpu::Buffer,
@@ -59,7 +67,7 @@ impl Renderer {
     fn create_buffer_displacement(
         init: &transforms::InitWgpu, 
         uniform_bind_group_layout: &wgpu::BindGroupLayout, 
-        vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer, model_uniform_buffer: &wgpu::Buffer,
+        vertex_uniform_buffer: &wgpu::Buffer, fragment_uniform_buffer: &wgpu::Buffer, model_uniform_buffer: &wgpu::Buffer, bones_buffer: &wgpu::Buffer,
         displacement_texture: &wgpu::Texture, displacement_texture_size: wgpu::Extent3d, 
         displacement_rgba: &Vec<u8>, displacement_width: u32, displacement_height: u32,
         texture: &wgpu::Texture, texture_size: wgpu::Extent3d, rgba: &Vec<u8>, width: u32, height: u32, vertex_num: usize,
@@ -138,6 +146,10 @@ impl Renderer {
                 wgpu::BindGroupEntry {
                     binding: 6,
                     resource: model_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: bones_buffer.as_entire_binding(),
                 },
             ],
             label: Some("Uniform Bind Group"),
@@ -223,6 +235,16 @@ impl Renderer {
                     visibility: wgpu::ShaderStages::VERTEX,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
                         min_binding_size: None,
                     },
@@ -393,6 +415,9 @@ impl Renderer {
         let vertex_buffers = Vec::new();
         let uniform_bind_groups = Vec::new();
         let num_vertices = Vec::new();
+        let bone_buffers = Vec::new();
+        let bones = Vec::new();
+        let shader_type = Vec::new();
 
         let previous_frame_time = std::time::Instant::now();
 
@@ -409,6 +434,9 @@ impl Renderer {
             vertex_buffers,
             uniform_bind_groups,
             num_vertices,
+            bone_buffers,
+            bones,
+            shader_type,
 
             uniform_bind_group_layout,
             vertex_uniform_buffer,
@@ -513,25 +541,30 @@ impl Renderer {
             }
         }
 
+        for i in 0..self.world.get_objects().len() {
+            if self.world.get_object(i).get_object_type() == ObjectType::Skybox {
+                let model_mat = transforms::create_transforms(
+                    [self.camera_position.0, self.camera_position.1, self.camera_position.2], 
+                    [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+                );
+                let normal_mat = (model_mat.invert().unwrap()).transpose();
+
+                let model_ref:&[f32; 16] = model_mat.as_ref();
+                let normal_ref:&[f32; 16] = normal_mat.as_ref();
+                let eye_position:&[f32; 3] = &self.camera_position.into();
+                self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
+                self.init.queue.write_buffer(&self.model_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
+                self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
+            } else if self.world.get_object(i).get_object_type() == ObjectType::SkinnedMesh {
+                for bone_index in 0..self.bones[i].len() {
+                    self.bones[i][bone_index].rotation.1 += 0.01;
+                }
+                self.update_bones(i);
+            }
+        }
+
         // update skybox positions
         if self.frame % 10 == 0 {
-            for i in 0..self.world.get_objects().len() {
-                if self.world.get_objects()[i].get_object_type() == ObjectType::Skybox {
-                    let model_mat = transforms::create_transforms(
-                        [self.camera_position.0, self.camera_position.1, self.camera_position.2], 
-                        [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
-                    );
-                    let normal_mat = (model_mat.invert().unwrap()).transpose();
-
-                    let model_ref:&[f32; 16] = model_mat.as_ref();
-                    let normal_ref:&[f32; 16] = normal_mat.as_ref();
-                    let eye_position:&[f32; 3] = &self.camera_position.into();
-                    self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
-                    self.init.queue.write_buffer(&self.model_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
-                    self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
-                }
-            }
-
             let grabbable_object_index = raycast_grab(self.world.get_objects(), self.camera_position, forward, 5);
             if grabbable_object_index > 0 {
                 let y_rotation = self.world.get_objects()[grabbable_object_index].get_rotation().1;
@@ -619,6 +652,18 @@ impl Renderer {
         self.frame += 1;
     }
 
+    pub fn update_bones(&mut self, object_index: usize) {
+        let mut bones: Vec<[[f32; 4]; 4]> = Vec::new();
+        for bone in self.bones[object_index].iter() {
+            bones.push(transforms::create_transforms(
+                bone.position.into(), 
+                bone.rotation.into(), 
+                bone.scale.into()
+            ).into());
+        }
+        self.init.queue.write_buffer(&self.bone_buffers[object_index], 0, bytemuck::cast_slice(&bones));
+    }
+
     pub fn set_world(&mut self, world: World) {
         self.world = world;
 
@@ -629,9 +674,44 @@ impl Renderer {
         for object in self.world.get_objects().iter().enumerate() {
             let meshes = object.1.get_vertices();
             let materials = object.1.get_materials();
+            let mut bones: Vec<[[f32; 4]; 4]> = Vec::new();
             self.vertex_buffers.push(Vec::new());
             self.uniform_bind_groups.push(Vec::new());
             self.num_vertices.push(Vec::new());
+            
+            let bone_transforms = object.1.get_bones();
+            self.bones.push(bone_transforms.clone());
+
+            for bone in bone_transforms {
+                bones.push(transforms::create_transforms(
+                    bone.position.into(), 
+                    bone.rotation.into(), 
+                    bone.scale.into()
+                ).into());
+            }
+            
+            let bone_buffer;
+            if bones.len() > 0 {
+                println!("{}", object.0);
+                self.shader_type.push(ShaderType::DisplacementBones);
+                bone_buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor{
+                    label: Some("Bone Buffer"),
+                    size: (bones.len() * std::mem::size_of::<Matrix4<f32>>()) as u64,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                });
+                self.init.queue.write_buffer(&bone_buffer, 0, bytemuck::cast_slice(&bones));
+            } else {
+                self.shader_type.push(ShaderType::Displacement);
+                bone_buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor{
+                    label: Some("Bone Buffer"),
+                    size: 16,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                });
+            }
+
+            self.bone_buffers.push(bone_buffer);
 
             let model_uniform_buffer: wgpu::Buffer = self.init.device.create_buffer(&wgpu::BufferDescriptor{
                 label: Some("Vertex Uniform Buffer"),
@@ -640,9 +720,8 @@ impl Renderer {
                 mapped_at_creation: false,
             });
 
-            let model_mat = transforms::create_transforms([
-                0.0, 0.0, 0.0], 
-                [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+            let model_mat = transforms::create_transforms(
+                [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
             );
             let normal_mat = (model_mat.invert().unwrap()).transpose();
 
@@ -684,8 +763,8 @@ impl Renderer {
                 if let Some(texture_displacement) = texture_object_displacement {
                     (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
                         &self.init, &self.uniform_bind_group_layout, 
-                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                        &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
+                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer, &model_uniform_buffer, 
+                        &self.bone_buffers[object.0], &texture_displacement.texture, texture_displacement.texture_size, 
                         &texture_displacement.texture_rgba, 
                         texture_displacement.texture_width, texture_displacement.texture_height,
                         &texture_object.texture, texture_object.texture_size, &texture_object.texture_rgba, 
@@ -695,8 +774,8 @@ impl Renderer {
                     if let Some(texture_displacement) = self.textures.get("textures/displacement.png") {
                         (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
                             &self.init, &self.uniform_bind_group_layout, 
-                            &self.vertex_uniform_buffer, &self.fragment_uniform_buffer,
-                            &model_uniform_buffer, &texture_displacement.texture, texture_displacement.texture_size, 
+                            &self.vertex_uniform_buffer, &self.fragment_uniform_buffer, &model_uniform_buffer, 
+                            &self.bone_buffers[object.0], &texture_displacement.texture, texture_displacement.texture_size, 
                             &texture_displacement.texture_rgba, 
                             texture_displacement.texture_width, texture_displacement.texture_height,
                             &texture_object.texture, texture_object.texture_size, &texture_object.texture_rgba, 
@@ -783,8 +862,24 @@ impl Renderer {
                 }),
             });
 
+            let mut current_shader = ShaderType::Displacement;
             render_pass.set_pipeline(&self.pipeline_displacement);
+
             for mesh in 0..self.vertex_buffers.len() {
+                let shader_type = &self.shader_type[mesh];
+                if shader_type != &current_shader {
+                    match shader_type {
+                        ShaderType::Displacement => {
+                            render_pass.set_pipeline(&self.pipeline_displacement);
+                            current_shader = ShaderType::Displacement;
+                        }
+                        ShaderType::DisplacementBones => {
+                            render_pass.set_pipeline(&self.pipeline_displacement_bones);
+                            current_shader = ShaderType::DisplacementBones;
+                        }
+                    }
+                }
+
                 for i in 0..self.vertex_buffers[mesh].len() {
                     render_pass.set_vertex_buffer(0, self.vertex_buffers[mesh][i].slice(..));           
                     render_pass.set_bind_group(0, &self.uniform_bind_groups[mesh][i], &[]);

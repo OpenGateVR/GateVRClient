@@ -1,5 +1,5 @@
-pub fn create_cube(position: (f64, f64, f64), scale: (f64, f64, f64)) -> Vec<(Vec<[f64; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> {
-    let mut vertices: Vec<[f64; 3]> = Vec::new();
+pub fn create_cube(position: (f32, f32, f32), scale: (f32, f32, f32)) -> Vec<(Vec<[f32; 3]>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)> {
+    let mut vertices: Vec<[f32; 3]> = Vec::new();
     let mut normals: Vec<[i8; 3]> = Vec::new();
     let mut colors: Vec<[f32; 3]> = Vec::new();
     let mut uvs: Vec<[f32; 2]> = Vec::new();

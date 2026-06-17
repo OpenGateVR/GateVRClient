@@ -9,10 +9,15 @@ struct Model {
     normal_mat : mat4x4<f32>
 };
 
+struct Bones {
+    matrices: array<mat4x4<f32>>,
+};
+
 @binding(0) @group(0) var<uniform> uniforms : Uniforms;
 @binding(4) @group(0) var displacement_tex: texture_2d<f32>;
 @binding(5) @group(0) var displacement_sampler: sampler;
 @binding(6) @group(0) var<uniform> model : Model;
+@binding(7) @group(0) var<storage, read> bones: Bones;
 
 struct Output {
     @builtin(position) position : vec4<f32>,
@@ -37,7 +42,13 @@ fn vs_main(
     // Apply displacement along vertex normal
     let displaced_pos: vec4<f32> = pos + vec4(normalize(normal.xyz) * displacement * strength, 0.0);
 
-    let m_position:vec4<f32> = model.model_mat * displaced_pos;
+    let skin_mat =
+        bone_weight.x * bones.matrices[u32(bone_index.x)]
+        + bone_weight.y * bones.matrices[u32(bone_index.y)]
+        + bone_weight.z * bones.matrices[u32(bone_index.z)]
+        + bone_weight.w * bones.matrices[u32(bone_index.w)];
+
+    let m_position:vec4<f32> = skin_mat * model.model_mat * displaced_pos;
     output.position = uniforms.view_project_mat * m_position;
     output.v_position = m_position;
     output.v_normal =  model.normal_mat * normal;
