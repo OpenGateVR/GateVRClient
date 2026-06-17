@@ -72,16 +72,16 @@ fn main() {
     niko_object.add_material(Material::from_texture("textures/niko.png"), "NikoMaterial");
     world.add_object(niko_object);
 
-    /*let test = parse("models/SELESTIA.fbx", (3.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
+    let test = parse("models/SELESTIA.fbx", (3.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
     let mut test_object = Object::create(
         ObjectType::Mesh,
-        renderer::vertex::create_vertices(&test)
+        renderer::vertex::create_vertices_skinned(&test.0)
     );
-    test_object.add_material(Material{ texture: "textures/Selestia_costume.png".to_string() }, "Selestia_costumeMaterial");
-    test_object.add_material(Material{ texture: "textures/Selestia_hair.png".to_string() }, "Selestia_hairMaterial");
-    test_object.add_material(Material{ texture: "textures/Selestia_body.png".to_string() }, "Selestia_bodyMaterial");
-    test_object.add_material(Material{ texture: "textures/Selestia_face.png".to_string() }, "Selestia_optionMaterial");
-    world.add_object(test_object);*/
+    test_object.add_material(Material::from_texture("textures/Selestia_costume.png"), "Selestia_costumeMaterial");
+    test_object.add_material(Material::from_texture("textures/Selestia_hair.png"), "Selestia_hairMaterial");
+    test_object.add_material(Material::from_texture("textures/Selestia_body.png"), "Selestia_bodyMaterial");
+    test_object.add_material(Material::from_texture("textures/Selestia_face.png"), "Selestia_optionMaterial");
+    world.add_object(test_object);
 
     /*let figure = parse("models/niko.fbx", (0.0, 3.0, 0.0), (0.5, 0.5, 0.5), (0.0, 0.0, 0.0));
     let mut figure_object = Object::create(
