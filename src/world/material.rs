@@ -11,6 +11,10 @@ impl Material {
         }
     }
 
+    pub fn set_displacement(&mut self, texture: &str) {
+        self.displacement = texture.to_string();
+    }
+
     pub fn get_texture(&self) -> &str {
         &self.texture
     }

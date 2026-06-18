@@ -405,7 +405,6 @@ impl Renderer {
         textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
         textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
         textures.insert("textures/brick.jpg".to_string(), TextureObject::create("textures/brick.jpg", &init));
-        textures.insert("textures/brick_displace.png".to_string(), TextureObject::create("textures/brick_displace.png", &init));
         //textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
         //textures.insert("textures/Selestia_hair.png".to_string(), TextureObject::create("textures/Selestia_hair.png", &init));
         //textures.insert("textures/Selestia_body.png".to_string(), TextureObject::create("textures/Selestia_body.png", &init));
@@ -766,28 +765,28 @@ impl Renderer {
                 let vertex_buffer;
                 if let Some(texture_displacement) = texture_object_displacement {
                     (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
-                        &self.init, &self.uniform_bind_group_layout, 
-                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer, &model_uniform_buffer, 
-                        &self.bone_buffers[object.0], &texture_displacement.texture, texture_displacement.texture_size, 
-                        &texture_displacement.texture_rgba, 
+                        &self.init, &self.uniform_bind_group_layout,
+                        &self.vertex_uniform_buffer, &self.fragment_uniform_buffer, &model_uniform_buffer,
+                        &self.bone_buffers[object.0], &texture_displacement.texture, texture_displacement.texture_size,
+                        &texture_displacement.texture_rgba,
                         texture_displacement.texture_width, texture_displacement.texture_height,
-                        &texture_object.texture, texture_object.texture_size, &texture_object.texture_rgba, 
+                        &texture_object.texture, texture_object.texture_size, &texture_object.texture_rgba,
                         texture_object.texture_width, texture_object.texture_height, vertices.len(),
                     );
                 } else {
                     if let Some(texture_displacement) = self.textures.get("textures/displacement.png") {
                         (uniform_bind_group, vertex_buffer) = Self::create_buffer_displacement(
-                            &self.init, &self.uniform_bind_group_layout, 
-                            &self.vertex_uniform_buffer, &self.fragment_uniform_buffer, &model_uniform_buffer, 
-                            &self.bone_buffers[object.0], &texture_displacement.texture, texture_displacement.texture_size, 
-                            &texture_displacement.texture_rgba, 
+                            &self.init, &self.uniform_bind_group_layout,
+                            &self.vertex_uniform_buffer, &self.fragment_uniform_buffer, &model_uniform_buffer,
+                            &self.bone_buffers[object.0], &texture_displacement.texture, texture_displacement.texture_size,
+                            &texture_displacement.texture_rgba,
                             texture_displacement.texture_width, texture_displacement.texture_height,
-                            &texture_object.texture, texture_object.texture_size, &texture_object.texture_rgba, 
+                            &texture_object.texture, texture_object.texture_size, &texture_object.texture_rgba,
                             texture_object.texture_width, texture_object.texture_height, vertices.len(),
                         );
                     } else { continue; }
                 }
-                
+
                 self.vertex_buffers[object.0].push(vertex_buffer);
                 self.uniform_bind_groups[object.0].push(uniform_bind_group);
 
@@ -816,7 +815,7 @@ impl Renderer {
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        
+
         let depth_texture = self.init.device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
                 width: self.init.config.width,

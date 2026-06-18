@@ -57,7 +57,11 @@ impl World {
                         }
                     }
                     let material_name = format!("material{}", static_world_object.get_materials().len());
-                    static_world_object.add_material(Material::from_texture(&scene_object.texture), material_name);
+                    let mut object_material = Material::from_texture(&scene_object.texture);
+                    if scene_object.displace != "".to_string() {
+                        object_material.set_displacement(&scene_object.displace);
+                    }
+                    static_world_object.add_material(object_material, material_name);
                     static_world_object.add_meshes(vertices);
                 } else {
                     let object = Object::create(

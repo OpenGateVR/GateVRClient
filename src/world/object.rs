@@ -31,7 +31,6 @@ pub struct Object {
     transform: Transform,
     vertices: Vec<(Vec<Vertex>, String)>,
     materials: HashMap<String, Material>,
-    displacement_texture: String,
     bones: Vec<Transform>,
     skeleton: HashMap<String, usize>,
     movable: bool,
@@ -46,7 +45,6 @@ impl Object {
             transform: Transform::zero(),
             vertices: meshes,
             materials,
-            displacement_texture: "None".to_string(),
             bones: Vec::new(),
             skeleton: HashMap::new(),
             movable: false,
@@ -109,9 +107,6 @@ impl Object {
     }
     pub fn get_object_type(&self) -> ObjectType {
         self.object_type
-    }
-    pub fn get_displacement(&self) -> &str {
-        &self.displacement_texture
     }
     pub fn get_bones(&self) -> &Vec<Transform> {
         &self.bones
