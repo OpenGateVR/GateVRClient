@@ -1,5 +1,5 @@
-# GateVRClient
-The fully opensource original GateVR client  
+# Caevern Client
+The fully opensource original Caevern client  
 Custom 3d model importer? Of course,  
 Custom server architecture? Of course,  
 Custom packet system? Of course,  
