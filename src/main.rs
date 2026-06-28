@@ -1,3 +1,5 @@
+// Copyright 2026 Charli van Nood
+
 pub mod renderer;
 pub mod world;
 pub mod interract;
