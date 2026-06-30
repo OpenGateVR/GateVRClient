@@ -235,7 +235,7 @@ fn parse_skins(node: &Node) -> HashSet<i64> {
     skins
 }
 
-fn parse_animation_curves(node: &Node)
+fn _parse_animation_curves(node: &Node)
     -> HashMap<i64, AnimationCurve>
 {
     let mut curves = HashMap::new();
@@ -297,7 +297,7 @@ fn parse_animation_curves(node: &Node)
     curves
 }
 
-fn parse_curve_nodes(node: &Node)
+fn _parse_curve_nodes(node: &Node)
     -> HashMap<i64, AnimationCurveNode>
 {
     let mut nodes = HashMap::new();

@@ -2,12 +2,14 @@ use crate::{renderer::vertex::create_vertices_skinned, world::{material::Materia
 
 pub struct World {
     pub objects: Vec<Object>,
+    pub textures: Vec<String>,
     cameras: Vec<Object>
 }
 impl World {
     pub fn new() -> Self{
         Self {
             objects: Vec::new(),
+            textures: Vec::new(),
             cameras: Vec::new()
         }
     }
@@ -34,6 +36,10 @@ impl World {
         &self.cameras
     }
 
+    pub fn get_textures(&self) -> &Vec<String> {
+        &self.textures
+    }
+
     pub fn load_world(&mut self, path: &str) {
         let scene = load_scene(path);
         if let Ok(scene) = scene {
@@ -58,6 +64,7 @@ impl World {
                     }
                     let material_name = format!("material{}", static_world_object.get_materials().len());
                     let mut object_material = Material::from_texture(&scene_object.texture);
+                    self.textures.push(scene_object.texture);
                     if scene_object.displace != "".to_string() {
                         object_material.set_displacement(&scene_object.displace);
                     }

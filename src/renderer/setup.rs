@@ -1,8 +1,7 @@
 use winit::{event::*, event_loop::{ControlFlow, EventLoop}};
 use std::sync::mpsc;
 use crate::{
-    network::users::{LocalUserUpdate, start_user_handler}, 
-    renderer::render::Renderer, world::world::World
+    network::users::{LocalUserUpdate, start_user_handler}, renderer::render::Renderer, world::world::World, xr::xr_manager::XRManager
 };
 
 // this will call the render class
@@ -26,6 +25,17 @@ pub fn start_engine(world: World) {
     let mut use_confined = false;
 
     let mut menu_tablet_state = 0;
+
+    // TODO: change xr_enabled to an actual option
+    let xr_enabled = true;
+
+    if xr_enabled {
+        if let Ok(xr) = XRManager::new() {
+            println!("STARTED XRManager!!!")
+        } else {
+            println!("Initializing XRManager has failed :C")
+        }
+    }
 
     start_user_handler(job_rx);
 

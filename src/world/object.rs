@@ -74,6 +74,9 @@ impl Object {
     pub fn set_vertices(&mut self, vertices: Vec<(Vec<Vertex>, String)>) {
         self.vertices = vertices;
     }
+    pub fn clear_vertices(&mut self) {
+        self.vertices.clear();
+    }
     pub fn set_default_texture(&mut self, texture: &str) {
         self.materials.insert("default".to_string(), Material { texture: texture.to_string(), displacement: "".to_string() });
     }

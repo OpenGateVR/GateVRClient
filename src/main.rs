@@ -6,6 +6,7 @@ pub mod interract;
 pub mod setup;
 pub mod network;
 pub mod physics;
+pub mod xr;
 
 use world::object::Object;
 use std::alloc;

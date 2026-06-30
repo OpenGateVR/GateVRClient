@@ -43,5 +43,8 @@ pub fn get_camera_movement(
         camera_acceleration_walking.0 -= frame_time * right[0];
         camera_acceleration_walking.2 -= frame_time * right[2];
     }
+    if keys[4] {
+        camera_acceleration_walking.1 += frame_time * 10.0;
+    }
     (camera_acceleration_walking.0 * 1.0 * frame_time, camera_acceleration_walking.1 * 1.0 * frame_time, camera_acceleration_walking.2 * 1.0 * frame_time)
 }

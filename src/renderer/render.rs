@@ -390,21 +390,21 @@ impl Renderer {
         // create missing texture
         textures.insert("textures/missing.png".to_string(), TextureObject::create("textures/missing.png", &init));
         textures.insert("textures/tablet.png".to_string(), TextureObject::create("textures/tablet.png", &init));
+        textures.insert("textures/displacement.png".to_string(), TextureObject::create("textures/displacement.png", &init));
 
         // create font atlasses
         textures.insert("fonts/NotoSansJP.ttf".to_string(), TextureObject::load_from_dynamic_image(load_font_atlas("fonts/NotoSansJP.ttf"), &init));
 
-        textures.insert("textures/atlas.png".to_string(), TextureObject::create("textures/atlas.png", &init));
-        textures.insert("textures/wood.jpg".to_string(), TextureObject::create("textures/wood.jpg", &init));
-        textures.insert("textures/table.png".to_string(), TextureObject::create("textures/table.png", &init));
-        textures.insert("textures/ground.jpg".to_string(), TextureObject::create("textures/ground.jpg", &init));
-        textures.insert("textures/ground_displacement.png".to_string(), TextureObject::create("textures/ground_displacement.png", &init));
-        textures.insert("textures/displacement.png".to_string(), TextureObject::create("textures/displacement.png", &init));
-        textures.insert("textures/niko.png".to_string(), TextureObject::create("textures/niko.png", &init));
-        textures.insert("textures/wall.jpg".to_string(), TextureObject::create("textures/wall.jpg", &init));
-        textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
-        textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
-        textures.insert("textures/brick.jpg".to_string(), TextureObject::create("textures/brick.jpg", &init));
+        //textures.insert("textures/atlas.png".to_string(), TextureObject::create("textures/atlas.png", &init));
+        //textures.insert("textures/wood.jpg".to_string(), TextureObject::create("textures/wood.jpg", &init));
+        //textures.insert("textures/table.png".to_string(), TextureObject::create("textures/table.png", &init));
+        //textures.insert("textures/ground.jpg".to_string(), TextureObject::create("textures/ground.jpg", &init));
+        //textures.insert("textures/ground_displacement.png".to_string(), TextureObject::create("textures/ground_displacement.png", &init));
+        //textures.insert("textures/niko.png".to_string(), TextureObject::create("textures/niko.png", &init));
+        //textures.insert("textures/wall.jpg".to_string(), TextureObject::create("textures/wall.jpg", &init));
+        //textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
+        //textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
+        //textures.insert("textures/brick.jpg".to_string(), TextureObject::create("textures/brick.jpg", &init));
         //textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
         //textures.insert("textures/Selestia_hair.png".to_string(), TextureObject::create("textures/Selestia_hair.png", &init));
         //textures.insert("textures/Selestia_body.png".to_string(), TextureObject::create("textures/Selestia_body.png", &init));
@@ -673,6 +673,10 @@ impl Renderer {
         self.vertex_buffers.clear();
         self.uniform_bind_groups.clear();
         self.num_vertices.clear();
+
+        for texture in self.world.get_textures() {
+            self.textures.insert(texture.to_string(), TextureObject::create(texture, &self.init));
+        }
 
         for object in self.world.get_objects().iter().enumerate() {
             let meshes = object.1.get_vertices();
