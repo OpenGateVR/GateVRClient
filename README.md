@@ -16,7 +16,10 @@ Custom engine? Of course! :D
 - [x] Bone implementation
 - [ ] Animation importing FBX
 - [x] Font importer
-- [ ] World data file loader
+- [x] World data file loader
+- [x] World parser
+- [x] Dynamic world loading and compiling
+- [x] Dynamic fond loading
 - [ ] Unity exporting plugin (for making worlds and avatars)
 - [ ] Mirror system
 - [ ] Video system
