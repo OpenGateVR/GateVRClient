@@ -20,6 +20,7 @@ Custom engine? Of course! :D
 - [x] World parser
 - [x] Dynamic world loading and compiling
 - [x] Dynamic fond loading
+- [ ] World loading from Github repo
 - [ ] Unity exporting plugin (for making worlds and avatars)
 - [ ] Mirror system
 - [ ] Video system
