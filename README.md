@@ -22,7 +22,7 @@ Custom engine? Of course! :D
 - [x] Material displacement
 - [x] Bone importing FBX
 - [x] Bone implementation
-- [ ] Bone hierarchy
+- [x] Bone hierarchy
 - [ ] Animation importing FBX
 - [x] Font importer
 - [x] World data file loader
