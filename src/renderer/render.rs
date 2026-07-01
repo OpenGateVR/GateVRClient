@@ -550,12 +550,12 @@ impl Renderer {
                 self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
-            }/* else if self.world.get_object(i).get_object_type() == ObjectType::SkinnedMesh {
-                for bone_index in 0..20 {
-                    self.bones[i][bone_index].rotation.1 += 0.01;
-                }
+            } else if self.world.get_object(i).get_object_type() == ObjectType::SkinnedMesh {
+                let skeleton = self.world.get_object(i).get_skeleton();
+                self.bones[i][skeleton["neck"]].rotation.y += 0.01;
+                self.bones[i][skeleton["head"]].rotation.y += 0.01;
                 self.update_bones(i);
-            }*/
+            }
         }
 
         // update skybox positions
@@ -657,7 +657,6 @@ impl Renderer {
         self.frame += 1;
     }
 
-    #[allow(dead_code)]
     pub fn update_bones(&mut self, object_index: usize) {
         let mut bones: Vec<[[f32; 4]; 4]> = Vec::new();
         for bone in self.bones[object_index].iter() {
@@ -731,7 +730,19 @@ impl Renderer {
             });
 
             let model_mat = transforms::create_transforms(
-                [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
+                [
+                        object.1.get_position().x,
+                        object.1.get_position().y,
+                        object.1.get_position().z
+                    ], [
+                        object.1.get_rotation().x,
+                        object.1.get_rotation().y,
+                        object.1.get_rotation().z
+                    ], [
+                        object.1.get_scale().x,
+                        object.1.get_scale().y,
+                        object.1.get_scale().z
+                    ]
             );
             let normal_mat = (model_mat.invert().unwrap()).transpose();
 

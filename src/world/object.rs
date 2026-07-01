@@ -64,7 +64,7 @@ impl Object {
     pub fn set_position(&mut self, x: f32, y: f32, z: f32) {
         self.transform.position = Vector3::new(x, y, z);
     }
-    pub fn set_size(&mut self, x: f32, y: f32, z: f32) {
+    pub fn set_scale(&mut self, x: f32, y: f32, z: f32) {
         self.transform.scale = Vector3::new(x, y, z);
     }
     pub fn set_rotation(&mut self, x: f32, y: f32, z: f32) {
@@ -76,6 +76,10 @@ impl Object {
     pub fn set_vertices(&mut self, vertices: Vec<(Vec<Vertex>, String)>) {
         self.vertices = vertices;
     }
+    pub fn set_object_type(&mut self, object_type: ObjectType) {
+        self.object_type = object_type;
+    }
+
     pub fn clear_vertices(&mut self) {
         self.vertices.clear();
     }
@@ -87,16 +91,22 @@ impl Object {
             material.displacement = texture.to_string();
         }
     }
-    pub fn set_bones(&mut self, bones: HashMap<i64, (usize, Transform)>,
+
+    pub fn set_bones(&mut self, bones: HashMap<i64, (usize, Transform, String)>,
         position: Vector3<f32>, rotation: Vector3<f32>, scale: Vector3<f32>
     ) {
         let mut bones_converted: Vec<Transform> = new_bone_vec(bones.len());
         for bone in bones {
             if bone.1.0 > bones_converted.len() { continue; }
+            //println!("{} : {}", bone.1.0, bone.1.2);
             bones_converted[bone.1.0] = Transform { position: position, rotation: rotation, scale: scale };
         }
         self.bones = bones_converted;
     }
+    pub fn set_skeleton(&mut self, skeleton: HashMap<String, usize>) {
+        self.skeleton = skeleton;
+    }
+
     pub fn set_movable(&mut self, value: bool) {
         self.movable = value;
     }
@@ -113,9 +123,14 @@ impl Object {
     pub fn get_object_type(&self) -> ObjectType {
         self.object_type
     }
+
     pub fn get_bones(&self) -> &Vec<Transform> {
         &self.bones
     }
+    pub fn get_skeleton(&self) -> &HashMap<String, usize> {
+        &self.skeleton
+    }
+
     pub fn get_movable(&self) -> bool {
         self.movable
     }
@@ -124,6 +139,9 @@ impl Object {
     }
     pub fn get_rotation(&self) -> Vector3<f32> {
         self.transform.rotation
+    }
+    pub fn get_scale(&self) -> Vector3<f32> {
+        self.transform.scale
     }
     pub fn get_tag(&self) -> &str {
         &self.tag

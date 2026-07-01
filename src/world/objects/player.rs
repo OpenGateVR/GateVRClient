@@ -19,7 +19,7 @@ impl Player {
             forces: Vector3::new(0.0, 0.0, 0.0),
 
             is_grounded: true,
-            walking_speed: 0.4,
+            walking_speed: 0.25,
             jump_force: 0.6
         }
     }

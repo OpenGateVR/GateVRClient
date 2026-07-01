@@ -582,7 +582,7 @@ fn parse_materials(node: &Node) -> HashMap<i64, Material> {
 
 fn pack_weights(
     influences: &[(i64, f32)],
-    bone_map: &HashMap<i64, (usize, transform::Transform)>,
+    bone_map: &HashMap<i64, (usize, transform::Transform, String)>,
 ) -> ([u32; 4], [f32; 4]) {
 
     let mut ids = [0u32; 4];
@@ -611,7 +611,7 @@ fn pack_weights(
     (ids, weights)
 }
 
-pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rotation: (f32, f32, f32)) -> (Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>, HashMap<i64, (usize, transform::Transform)>) {
+pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rotation: (f32, f32, f32)) -> (Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>, HashMap<i64, (usize, transform::Transform, String)>) {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
     let mut reader = BufReader::new(cursor);
@@ -713,7 +713,7 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
                 position: Vector3::new( bone.translation.0, bone.translation.1, bone.translation.2 ),
                 rotation: Vector3::new( bone.rotation.0, bone.rotation.1, bone.rotation.2 ),
                 scale: Vector3::new( bone.scaling.0, bone.scaling.1, bone.scaling.2 ),
-            }
+            }, bone.name.clone()
         ));
     }
 

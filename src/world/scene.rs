@@ -25,6 +25,9 @@ pub struct Object {
     #[serde(default = "default_materials")]
     pub materials: Vec<Material>,
 
+    #[serde(default = "default_skeleton")]
+    pub skeleton: Vec<BoneIdentifier>,
+
     #[serde(default = "default_displace")]
     pub displace: String,
 
@@ -38,6 +41,9 @@ fn default_texture() -> String {
 fn default_materials() -> Vec<Material> {
     Vec::new()
 }
+fn default_skeleton() -> Vec<BoneIdentifier> {
+    Vec::new()
+}
 
 fn default_displace() -> String {
     "".to_string()
@@ -47,6 +53,12 @@ fn default_displace() -> String {
 pub struct Material {
     pub name: String,
     pub texture: String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BoneIdentifier {
+    pub body_part: String,
+    pub bone_name: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
