@@ -78,10 +78,14 @@ impl World {
                     static_world_object.add_material(object_material, material_name);
                     static_world_object.add_meshes(vertices);
                 } else {
-                    let object = Object::create(
+                    let mut object = Object::create(
                         ObjectType::Mesh,
                         create_vertices_skinned(&model_parsed.0)
                     );
+                    for material in scene_object.materials {
+                        object.add_material(Material::from_texture(&material.texture), material.name);
+                        self.textures.insert(material.texture);
+                    }
                     self.add_object(object);
                 }
             }
