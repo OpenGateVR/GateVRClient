@@ -52,5 +52,5 @@ Custom engine? Of course! :D
 - [ ] Foviated rendering
 - [ ] LOD system
 - [ ] Dynamic Ambient Occlusion on build (now relies on texture baking)
-- [ ] In game world transformation"
+- [ ] In game world transformation
 - [ ] Camera album
