@@ -25,6 +25,8 @@ Custom engine? Of course! :D
 - [ ] Mirror system
 - [ ] Video system
 - [ ] Portal system
+- [ ] Entity culling
+- [ ] Chunked entity culling for static elements
 
 # Todo List Server:
 - [x] Player location data
@@ -37,3 +39,4 @@ Custom engine? Of course! :D
 - [ ] Self hosting (with relay system for safety)
 - [ ] Foviated rendering
 - [ ] LOD system
+- [ ] In game world transformation"
