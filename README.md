@@ -29,6 +29,9 @@ Custom engine? Of course! :D
 - [ ] Video system
 - [ ] Portal system
 - [ ] Dynamic UI system (non hardcoded)
+- [ ] Entity culling
+- [ ] Chunked entity culling for static elements
+- [ ] Camera (Taking pictures)
 
 # Todo List Server:
 - [x] Player location data
@@ -42,3 +45,5 @@ Custom engine? Of course! :D
 - [ ] Foviated rendering
 - [ ] LOD system
 - [ ] Dynamic Ambient Occlusion on build (now relies on texture baking)
+- [ ] In game world transformation"
+- [ ] Camera album
