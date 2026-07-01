@@ -23,6 +23,7 @@ Custom engine? Of course! :D
 - [x] Bone importing FBX
 - [x] Bone implementation
 - [x] Bone hierarchy
+- [ ] Dynamic bone writing
 - [ ] Animation importing FBX
 - [x] Font importer
 - [x] World data file loader
