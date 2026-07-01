@@ -35,8 +35,8 @@ fn main() {
         ObjectType::Camera,
         Vec::new()
     );
-    camera.set_position((-3.0, 4.0, 3.0));
-    camera.set_rotation((0.0, -45.0, 0.0));
+    camera.set_position(-3.0, 4.0, 3.0);
+    camera.set_rotation(0.0, -45.0, 0.0);
     world.add_object(camera);
 
     world.load_world("worlds/home.json");
@@ -58,7 +58,7 @@ fn main() {
         ObjectType::TabletMenu,
         renderer::vertex::create_vertices_skinned(&tablet.0)
     );
-    tablet_object.set_position((0.0, -10.0, 0.0));
+    tablet_object.set_position(0.0, -10.0, 0.0);
     tablet_object.set_default_texture("textures/tablet.png");
     world.add_object(tablet_object);
 

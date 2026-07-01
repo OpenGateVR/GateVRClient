@@ -115,12 +115,12 @@ pub fn start_engine(world: World) {
                                             mouse_locked = true;
                                             if !use_confined {
                                                 if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Locked) {
-                                                    eprintln!("Failed to lock the cursor: {:?}", err);
+                                                    eprintln!("Failed to lock the cursor, switching to confined: {:?}", err);
                                                     use_confined = true;
                                                 }
                                             } else {
                                                 if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
-                                                    eprintln!("Failed to lock the cursor: {:?}", err);
+                                                    eprintln!("Failed to confine the cursor, switching to locked: {:?}", err);
                                                 }
                                                 let window_size = window.inner_size();
                                                 let center_x = window_size.width as f64 / 2.0;
@@ -153,12 +153,12 @@ pub fn start_engine(world: World) {
                                         mouse_locked = true;
                                         if !use_confined {
                                             if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Locked) {
-                                                eprintln!("Failed to lock the cursor: {:?}", err);
+                                                eprintln!("Failed to lock the cursor, switching to confined: {:?}", err);
                                                 use_confined = true;
                                             }
                                         } else {
                                             if let Err(err) = window.set_cursor_grab(winit::window::CursorGrabMode::Confined) {
-                                                eprintln!("Failed to lock the cursor: {:?}", err);
+                                                eprintln!("Failed to confine the cursor, switching to locked: {:?}", err);
                                             }
                                             let window_size = window.inner_size();
                                             let center_x = window_size.width as f64 / 2.0;

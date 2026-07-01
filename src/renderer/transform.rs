@@ -1,15 +1,17 @@
+use cgmath::Vector3;
+
 #[derive(Clone, Copy)]
 pub struct Transform {
-    pub position: (f32, f32, f32),
-    pub rotation: (f32, f32, f32),
-    pub scale: (f32, f32, f32),
+    pub position: Vector3<f32>,
+    pub rotation: Vector3<f32>,
+    pub scale: Vector3<f32>,
 }
 impl Transform {
     pub fn zero() -> Self {
         Self {
-            position: (0.0, 0.0, 0.0),
-            rotation: (0.0, 0.0, 0.0),
-            scale: (0.0, 0.0, 0.0)
+            position: Vector3::new(0.0, 0.0, 0.0),
+            rotation: Vector3::new(0.0, 0.0, 0.0),
+            scale: Vector3::new(1.0, 1.0, 1.0)
         }
     }
 }

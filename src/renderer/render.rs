@@ -7,15 +7,18 @@ use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
 use crate::interract::raycast::raycast_grab;
+use crate::physics::gravity::apply_gravity;
 use crate::physics::movement::{get_camera_movement, get_camera_rotation};
 use crate::renderer::texture_object::TextureObject;
+use crate::renderer::transform::Transform;
 use crate::renderer::{transform, transforms, vertex};
 use crate::renderer::vertex::Vertex;
 use crate::setup::fonts::{load_font_atlas, load_font_uvs};
 use crate::world::object::ObjectType;
+use crate::world::objects::player::Player;
 use crate::world::objects::text;
 use crate::world::world::World;
-use crate::network::users::{LocalUserUpdate, Transform};
+use crate::network::users::{LocalUserUpdate};
 use crate::ALLOCATOR;
 
 #[derive(PartialEq)]
@@ -53,9 +56,10 @@ pub struct Renderer {
     font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32, f32)>>,
 
     // the client position and rotation
-    camera_position: (f32, f32, f32),
-    camera_rotation: (f32, f32, f32),
-    camera_acceleration_walking: (f32, f32, f32),
+    player: Player,
+    //camera_position: (f32, f32, f32),
+    //camera_rotation: (f32, f32, f32),
+    //camera_acceleration_walking: (f32, f32, f32),
 
     world: World,
     current_camera: usize,
@@ -395,21 +399,6 @@ impl Renderer {
         // create font atlasses
         textures.insert("fonts/NotoSansJP.ttf".to_string(), TextureObject::load_from_dynamic_image(load_font_atlas("fonts/NotoSansJP.ttf"), &init));
 
-        //textures.insert("textures/atlas.png".to_string(), TextureObject::create("textures/atlas.png", &init));
-        //textures.insert("textures/wood.jpg".to_string(), TextureObject::create("textures/wood.jpg", &init));
-        //textures.insert("textures/table.png".to_string(), TextureObject::create("textures/table.png", &init));
-        //textures.insert("textures/ground.jpg".to_string(), TextureObject::create("textures/ground.jpg", &init));
-        //textures.insert("textures/ground_displacement.png".to_string(), TextureObject::create("textures/ground_displacement.png", &init));
-        //textures.insert("textures/niko.png".to_string(), TextureObject::create("textures/niko.png", &init));
-        //textures.insert("textures/wall.jpg".to_string(), TextureObject::create("textures/wall.jpg", &init));
-        //textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
-        //textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
-        //textures.insert("textures/brick.jpg".to_string(), TextureObject::create("textures/brick.jpg", &init));
-        //textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
-        //textures.insert("textures/Selestia_hair.png".to_string(), TextureObject::create("textures/Selestia_hair.png", &init));
-        //textures.insert("textures/Selestia_body.png".to_string(), TextureObject::create("textures/Selestia_body.png", &init));
-        //textures.insert("textures/Selestia_face.png".to_string(), TextureObject::create("textures/Selestia_face.png", &init));
-
         let mut font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32, f32)>> = HashMap::new();
 
         font_maps.insert("NotoSansJP".to_string(), load_font_uvs("fonts/NotoSansJP.ttf"));
@@ -448,9 +437,10 @@ impl Renderer {
             textures,
             font_maps,
 
-            camera_position,
-            camera_rotation,
-            camera_acceleration_walking: (0.0, 0.0, 0.0),
+            player: Player::new(),
+            //camera_position,
+            //camera_rotation,
+            //camera_acceleration_walking: (0.0, 0.0, 0.0),
 
             world: World::new(),
             current_camera: 0,
@@ -469,7 +459,6 @@ impl Renderer {
         }
     }
     pub fn update(&mut self, _dt: std::time::Duration, keys: [bool; 6], mouse: [f32; 2], menu_tablet_state: usize) {
-        //self.camera_rotation.1 = dt.as_secs_f32();
         let current_time = std::time::Instant::now();
         let mut frame_time = current_time.duration_since(self.previous_frame_time).as_secs_f32() * 20.0;
         self.previous_frame_time = current_time;
@@ -478,22 +467,22 @@ impl Renderer {
             frame_time = 5.0
         }
 
-        let updated_camera_rotation = get_camera_rotation(
-            self.camera_rotation.0, self.camera_rotation.1, mouse, frame_time);
-        self.camera_rotation.0 = updated_camera_rotation.0;
-        self.camera_rotation.1 = updated_camera_rotation.1;
+        let updated_camera_rotation = get_camera_rotation(&self.player, mouse, frame_time);
+        self.player.camera.rotation.x = updated_camera_rotation.0;
+        self.player.camera.rotation.y = updated_camera_rotation.1;
 
         let forward = Vector3::new(
-            self.camera_rotation.1.cos() * self.camera_rotation.0.cos(),
-            self.camera_rotation.0.sin(),
-            self.camera_rotation.1.sin() * self.camera_rotation.0.cos(),
+            self.player.camera.rotation.y.cos() * self.player.camera.rotation.x.cos(),
+            self.player.camera.rotation.x.sin(),
+            self.player.camera.rotation.y.sin() * self.player.camera.rotation.x.cos(),
         ).normalize();
 
         let updated_camera_position = get_camera_movement(
-            self.camera_acceleration_walking, keys, forward, frame_time, self.camera_rotation);
-        self.camera_position.0 += updated_camera_position.0;
-        self.camera_position.1 += updated_camera_position.1;
-        self.camera_position.2 += updated_camera_position.2;
+            &mut self.player, keys, forward, frame_time
+        );
+        self.player.camera.position += updated_camera_position;
+
+        apply_gravity(&mut self.player, frame_time);
 
         if menu_tablet_state == 2 {
             for i in 0..self.world.get_objects().len() {
@@ -501,14 +490,14 @@ impl Renderer {
                 if object_type == ObjectType::TabletMenu || object_type == ObjectType::TabletMenuButton {
                     let model_mat = transforms::create_transforms(
                         [
-                            self.camera_position.0 + forward.x, 
-                            self.camera_position.1 + forward.y, 
-                            self.camera_position.2 + forward.z
-                            ], 
+                            self.player.camera.position.x + forward.x,
+                            self.player.camera.position.y + forward.y,
+                            self.player.camera.position.z + forward.z
+                            ],
                         [
-                            -self.camera_rotation.0, 
-                            -self.camera_rotation.1 + std::f32::consts::FRAC_PI_2, 
-                            -self.camera_rotation.2
+                            -self.player.camera.rotation.x,
+                            -self.player.camera.rotation.y + std::f32::consts::FRAC_PI_2,
+                            -self.player.camera.rotation.z
                             ], [1.0, 1.0, 1.0]
                     );
                     let normal_mat = (model_mat.invert().unwrap()).transpose();
@@ -525,11 +514,11 @@ impl Renderer {
                 let object_type = self.world.get_objects()[i].get_object_type();
                 if object_type == ObjectType::TabletMenu || object_type == ObjectType::TabletMenuButton {
                     let model_mat = transforms::create_transforms(
-                        [0.0, -10.0, 0.0], 
+                        [0.0, -10.0, 0.0],
                         [
-                            -self.camera_rotation.0, 
-                            -self.camera_rotation.1 + std::f32::consts::FRAC_PI_2, 
-                            -self.camera_rotation.2
+                            -self.player.camera.rotation.x,
+                            -self.player.camera.rotation.y + std::f32::consts::FRAC_PI_2,
+                            -self.player.camera.rotation.z
                             ], [1.0, 1.0, 1.0]
                     );
                     let normal_mat = (model_mat.invert().unwrap()).transpose();
@@ -546,14 +535,18 @@ impl Renderer {
         for i in 0..self.world.get_objects().len() {
             if self.world.get_object(i).get_object_type() == ObjectType::Skybox {
                 let model_mat = transforms::create_transforms(
-                    [self.camera_position.0, self.camera_position.1, self.camera_position.2], 
+                    [
+                        self.player.camera.position.x,
+                        self.player.camera.position.y,
+                        self.player.camera.position.z
+                        ],
                     [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]
                 );
                 let normal_mat = (model_mat.invert().unwrap()).transpose();
 
                 let model_ref:&[f32; 16] = model_mat.as_ref();
                 let normal_ref:&[f32; 16] = normal_mat.as_ref();
-                let eye_position:&[f32; 3] = &self.camera_position.into();
+                let eye_position:&[f32; 3] = &self.player.camera.position.into();
                 self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[i], 0, bytemuck::cast_slice(model_ref));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
@@ -567,9 +560,12 @@ impl Renderer {
 
         // update skybox positions
         if self.frame % 10 == 0 {
-            let grabbable_object_index = raycast_grab(self.world.get_objects(), self.camera_position, forward, 5);
+            let grabbable_object_index = raycast_grab(
+                self.world.get_objects(), self.player.camera.position, forward, 5
+            );
+
             if grabbable_object_index > 0 {
-                let y_rotation = self.world.get_objects()[grabbable_object_index].get_rotation().1;
+                let y_rotation = self.world.get_objects()[grabbable_object_index].get_rotation().y;
                 self.world.objects[grabbable_object_index].set_rotation_y(y_rotation + 0.1);
                 let model_mat = transforms::create_transforms(
                     [0.0, 0.0, 0.0], 
@@ -579,7 +575,7 @@ impl Renderer {
 
                 let model_ref:&[f32; 16] = model_mat.as_ref();
                 let normal_ref:&[f32; 16] = normal_mat.as_ref();
-                let eye_position:&[f32; 3] = &self.camera_position.into();
+                let eye_position:&[f32; 3] = &self.player.camera.position.into();
                 self.init.queue.write_buffer(&self.fragment_uniform_buffer, 16, bytemuck::cast_slice(eye_position));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[grabbable_object_index], 0, bytemuck::cast_slice(model_ref));
                 self.init.queue.write_buffer(&self.model_uniform_buffers[grabbable_object_index], 64, bytemuck::cast_slice(normal_ref));
@@ -587,16 +583,23 @@ impl Renderer {
 
             let _ = self.job_tx.send(LocalUserUpdate::SendUserPosition(
                 Transform {
-                    position: self.camera_position,
-                    rotation: self.camera_rotation
+                    position: self.player.camera.position,
+                    rotation: self.player.camera.rotation,
+                    scale: Vector3::new(0.0, 0.0, 0.0)
                 }
             ));
         }
 
         let up_direction = cgmath::Vector3::unit_y();
+        let camera_position = Point3 {
+            x: self.player.camera.position.x,
+            y: self.player.camera.position.y,
+            z: self.player.camera.position.z
+        };
         let (view_mat, project_mat, _) = transforms::create_view_rotation(
-            self.camera_position.into(), self.camera_rotation.1, self.camera_rotation.0, 
-            up_direction, self.init.config.width as f32 / self.init.config.height as f32);
+            camera_position, self.player.camera.rotation.y, self.player.camera.rotation.x,
+            up_direction, self.init.config.width as f32 / self.init.config.height as f32
+        );
 
         let view_project_mat = project_mat * view_mat;
         let view_projection_ref:&[f32; 16] = view_project_mat.as_ref();
@@ -806,10 +809,10 @@ impl Renderer {
 
         if self.world.get_cameras().len() > self.current_camera {
             let object_position = self.world.get_camera(self.current_camera).get_position();
-            self.camera_position.0 = object_position.0 as f32;
-            self.camera_position.1 = object_position.1 as f32;
-            self.camera_position.2 = object_position.2 as f32;
-            self.camera_rotation = self.world.get_camera(self.current_camera).get_rotation();
+            self.player.camera.position.x = object_position.x as f32;
+            self.player.camera.position.y = object_position.y as f32;
+            self.player.camera.position.z = object_position.z as f32;
+            self.player.camera.rotation = self.world.get_camera(self.current_camera).get_rotation();
         }
     }
 
