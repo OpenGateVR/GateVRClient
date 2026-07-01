@@ -13,6 +13,7 @@ use crate::renderer::{transform, transforms, vertex};
 use crate::renderer::vertex::Vertex;
 use crate::setup::fonts::{load_font_atlas, load_font_uvs};
 use crate::world::object::ObjectType;
+use crate::world::objects::player::Player;
 use crate::world::objects::text;
 use crate::world::world::World;
 use crate::network::users::{LocalUserUpdate, Transform};
@@ -53,9 +54,10 @@ pub struct Renderer {
     font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32, f32)>>,
 
     // the client position and rotation
-    camera_position: (f32, f32, f32),
-    camera_rotation: (f32, f32, f32),
-    camera_acceleration_walking: (f32, f32, f32),
+    player: Player,
+    //camera_position: (f32, f32, f32),
+    //camera_rotation: (f32, f32, f32),
+    //camera_acceleration_walking: (f32, f32, f32),
 
     world: World,
     current_camera: usize,
@@ -395,21 +397,6 @@ impl Renderer {
         // create font atlasses
         textures.insert("fonts/NotoSansJP.ttf".to_string(), TextureObject::load_from_dynamic_image(load_font_atlas("fonts/NotoSansJP.ttf"), &init));
 
-        //textures.insert("textures/atlas.png".to_string(), TextureObject::create("textures/atlas.png", &init));
-        //textures.insert("textures/wood.jpg".to_string(), TextureObject::create("textures/wood.jpg", &init));
-        //textures.insert("textures/table.png".to_string(), TextureObject::create("textures/table.png", &init));
-        //textures.insert("textures/ground.jpg".to_string(), TextureObject::create("textures/ground.jpg", &init));
-        //textures.insert("textures/ground_displacement.png".to_string(), TextureObject::create("textures/ground_displacement.png", &init));
-        //textures.insert("textures/niko.png".to_string(), TextureObject::create("textures/niko.png", &init));
-        //textures.insert("textures/wall.jpg".to_string(), TextureObject::create("textures/wall.jpg", &init));
-        //textures.insert("textures/skybox_1.png".to_string(), TextureObject::create("textures/skybox_1.png", &init));
-        //textures.insert("textures/skybox_2.png".to_string(), TextureObject::create("textures/skybox_2.png", &init));
-        //textures.insert("textures/brick.jpg".to_string(), TextureObject::create("textures/brick.jpg", &init));
-        //textures.insert("textures/Selestia_costume.png".to_string(), TextureObject::create("textures/Selestia_costume.png", &init));
-        //textures.insert("textures/Selestia_hair.png".to_string(), TextureObject::create("textures/Selestia_hair.png", &init));
-        //textures.insert("textures/Selestia_body.png".to_string(), TextureObject::create("textures/Selestia_body.png", &init));
-        //textures.insert("textures/Selestia_face.png".to_string(), TextureObject::create("textures/Selestia_face.png", &init));
-
         let mut font_maps: HashMap<String, HashMap<String, (f32, f32, f32, f32, f32)>> = HashMap::new();
 
         font_maps.insert("NotoSansJP".to_string(), load_font_uvs("fonts/NotoSansJP.ttf"));
@@ -448,9 +435,10 @@ impl Renderer {
             textures,
             font_maps,
 
-            camera_position,
-            camera_rotation,
-            camera_acceleration_walking: (0.0, 0.0, 0.0),
+            player: Player::new(),
+            //camera_position,
+            //camera_rotation,
+            //camera_acceleration_walking: (0.0, 0.0, 0.0),
 
             world: World::new(),
             current_camera: 0,
@@ -489,11 +477,15 @@ impl Renderer {
             self.camera_rotation.1.sin() * self.camera_rotation.0.cos(),
         ).normalize();
 
+        let grounded = false;
+
         let updated_camera_position = get_camera_movement(
-            self.camera_acceleration_walking, keys, forward, frame_time, self.camera_rotation);
+            self.camera_acceleration_walking, keys, forward, frame_time, self.camera_rotation, grounded
+        );
         self.camera_position.0 += updated_camera_position.0;
         self.camera_position.1 += updated_camera_position.1;
         self.camera_position.2 += updated_camera_position.2;
+        self.camera_acceleration_walking.1 = updated_camera_position.1;
 
         if menu_tablet_state == 2 {
             for i in 0..self.world.get_objects().len() {

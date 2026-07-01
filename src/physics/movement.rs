@@ -8,8 +8,10 @@ pub fn get_camera_rotation(camera_rotation_x: f32, camera_rotation_y: f32, mouse
 }
 
 pub fn get_camera_movement(
-    mut camera_acceleration_walking: (f32, f32, f32), keys: [bool; 6], 
-    forward: Vector3<f32>, frame_time: f32, camera_rotation: (f32, f32, f32)) -> (f32, f32, f32) {
+    mut camera_acceleration_walking: (f32, f32, f32), keys: [bool; 6],
+    forward: Vector3<f32>, frame_time: f32, camera_rotation: (f32, f32, f32),
+    grounded: bool
+) -> (f32, f32, f32) {
     
     let mut forward_x = forward[0];
     let mut forward_z = forward[2];
@@ -43,8 +45,8 @@ pub fn get_camera_movement(
         camera_acceleration_walking.0 -= frame_time * right[0];
         camera_acceleration_walking.2 -= frame_time * right[2];
     }
-    if keys[4] {
-        camera_acceleration_walking.1 += frame_time * 10.0;
+    if keys[4] && grounded {
+        camera_acceleration_walking.1 += frame_time * 1.0;
     }
-    (camera_acceleration_walking.0 * 1.0 * frame_time, camera_acceleration_walking.1 * 1.0 * frame_time, camera_acceleration_walking.2 * 1.0 * frame_time)
+    (camera_acceleration_walking.0 * 1.0 * frame_time, camera_acceleration_walking.1 * 0.9, camera_acceleration_walking.2 * 1.0 * frame_time)
 }
