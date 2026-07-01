@@ -1,3 +1,4 @@
+use cgmath::Vector3;
 use rust_embed::RustEmbed;
 use fbx::{File, Node};
 use fbx::Property;
@@ -709,9 +710,9 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
     for (index, bone) in bones.iter().enumerate() {
         bone_map.insert(bone.id, (index, 
             transform::Transform{
-                position: ( bone.translation.0, bone.translation.1, bone.translation.2 ),
-                rotation: ( bone.rotation.0, bone.rotation.1, bone.rotation.2 ),
-                scale: ( bone.scaling.0, bone.scaling.1, bone.scaling.2 ),
+                position: Vector3::new( bone.translation.0, bone.translation.1, bone.translation.2 ),
+                rotation: Vector3::new( bone.rotation.0, bone.rotation.1, bone.rotation.2 ),
+                scale: Vector3::new( bone.scaling.0, bone.scaling.1, bone.scaling.2 ),
             }
         ));
     }

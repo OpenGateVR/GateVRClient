@@ -9,11 +9,14 @@ Custom engine? Of course! :D
 - [x] Basic Rendering
 - [x] Text Rendering
 - [ ] OpenXR intergration
+- [ ] OpenXR initialization
+- [ ] OpenXR rendering
 - [x] Mesh importing FBX
 - [x] Material importing FBX
 - [x] Material displacement
 - [x] Bone importing FBX
 - [x] Bone implementation
+- [ ] Bone hierarchy
 - [ ] Animation importing FBX
 - [x] Font importer
 - [x] World data file loader
@@ -37,3 +40,4 @@ Custom engine? Of course! :D
 - [ ] Self hosting (with relay system for safety)
 - [ ] Foviated rendering
 - [ ] LOD system
+- [ ] Dynamic Ambient Occlusion on build (now relies on texture baking)

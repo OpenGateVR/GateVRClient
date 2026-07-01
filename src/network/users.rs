@@ -1,10 +1,7 @@
 use tungstenite::{connect, Message};
 use std::{sync::mpsc::Receiver, thread};
 
-pub struct Transform {
-    pub position: (f32, f32, f32),
-    pub rotation: (f32, f32, f32)
-}
+use crate::renderer::transform::Transform;
 
 pub enum LocalUserUpdate {
     SendUserPosition(Transform)
@@ -28,22 +25,22 @@ pub fn start_user_handler(job_rx: Receiver<LocalUserUpdate>) {
                 match job {
                     LocalUserUpdate::SendUserPosition(transform) => {
                         let mut data_sending = vec![8];
-                        for byte in transform.position.0.to_be_bytes() {
+                        for byte in transform.position.x.to_be_bytes() {
                             data_sending.push(byte);
                         }
-                        for byte in transform.position.1.to_be_bytes() {
+                        for byte in transform.position.y.to_be_bytes() {
                             data_sending.push(byte);
                         }
-                        for byte in transform.position.2.to_be_bytes() {
+                        for byte in transform.position.z.to_be_bytes() {
                             data_sending.push(byte);
                         }
-                        for byte in transform.rotation.0.to_be_bytes() {
+                        for byte in transform.rotation.x.to_be_bytes() {
                             data_sending.push(byte);
                         }
-                        for byte in transform.rotation.1.to_be_bytes() {
+                        for byte in transform.rotation.y.to_be_bytes() {
                             data_sending.push(byte);
                         }
-                        for byte in transform.rotation.2.to_be_bytes() {
+                        for byte in transform.rotation.z.to_be_bytes() {
                             data_sending.push(byte);
                         }
 

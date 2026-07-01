@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use cgmath::Vector3;
+
 use crate::{renderer::{transform::Transform, vertex::Vertex}, world::material::Material};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,17 +61,17 @@ impl Object {
         self.vertices.extend(meshes);
     }
 
-    pub fn set_position(&mut self, position: (f32, f32, f32)) {
-        self.transform.position = position;
+    pub fn set_position(&mut self, x: f32, y: f32, z: f32) {
+        self.transform.position = Vector3::new(x, y, z);
     }
-    pub fn set_size(&mut self, size: (f32, f32, f32)) {
-        self.transform.scale = size;
+    pub fn set_size(&mut self, x: f32, y: f32, z: f32) {
+        self.transform.scale = Vector3::new(x, y, z);
     }
-    pub fn set_rotation(&mut self, rotation: (f32, f32, f32)) {
-        self.transform.rotation = rotation;
+    pub fn set_rotation(&mut self, x: f32, y: f32, z: f32) {
+        self.transform.rotation = Vector3::new(x, y, z);
     }
     pub fn set_rotation_y(&mut self, rotation: f32) {
-        self.transform.rotation.1 = rotation;
+        self.transform.rotation.y = rotation;
     }
     pub fn set_vertices(&mut self, vertices: Vec<(Vec<Vertex>, String)>) {
         self.vertices = vertices;
@@ -86,7 +88,7 @@ impl Object {
         }
     }
     pub fn set_bones(&mut self, bones: HashMap<i64, (usize, Transform)>,
-        position: (f32, f32, f32), rotation: (f32, f32, f32), scale: (f32, f32, f32)
+        position: Vector3<f32>, rotation: Vector3<f32>, scale: Vector3<f32>
     ) {
         let mut bones_converted: Vec<Transform> = new_bone_vec(bones.len());
         for bone in bones {
@@ -117,10 +119,10 @@ impl Object {
     pub fn get_movable(&self) -> bool {
         self.movable
     }
-    pub fn get_position(&self) -> (f32, f32, f32) {
+    pub fn get_position(&self) -> Vector3<f32> {
         self.transform.position
     }
-    pub fn get_rotation(&self) -> (f32, f32, f32) {
+    pub fn get_rotation(&self) -> Vector3<f32> {
         self.transform.rotation
     }
     pub fn get_tag(&self) -> &str {
