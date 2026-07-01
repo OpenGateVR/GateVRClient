@@ -41,17 +41,6 @@ fn main() {
 
     world.load_world("worlds/home.json");
 
-    /*let test = parse("models/SELESTIA.fbx", (3.0, 2.0, -2.0), (2.0, 2.0, 2.0), (0.0, 0.0, 0.0));
-    let mut test_object = Object::create(
-        ObjectType::Mesh,
-        renderer::vertex::create_vertices_skinned(&test.0)
-    );
-    test_object.add_material(Material::from_texture("textures/Selestia_costume.png"), "Selestia_costumeMaterial");
-    test_object.add_material(Material::from_texture("textures/Selestia_hair.png"), "Selestia_hairMaterial");
-    test_object.add_material(Material::from_texture("textures/Selestia_body.png"), "Selestia_bodyMaterial");
-    test_object.add_material(Material::from_texture("textures/Selestia_face.png"), "Selestia_optionMaterial");
-    world.add_object(test_object);*/
-
     //let tablet = cube::create_cube((0.0, 0.0, 0.0), (0.5, 0.4, 0.01));
     let tablet = parse("models/tablet.fbx", (0.0, 0.0, 0.05), (0.1, 0.5, 0.5), (0.0, 90.0, 0.0));
     let mut tablet_object = Object::create(
