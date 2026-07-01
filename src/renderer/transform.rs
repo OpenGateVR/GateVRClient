@@ -14,4 +14,12 @@ impl Transform {
             scale: Vector3::new(1.0, 1.0, 1.0)
         }
     }
+
+    pub fn new(position: Vector3<f32>, rotation: Vector3<f32>, scale: Vector3<f32>) -> Self {
+        Self {
+            position,
+            rotation,
+            scale
+        }
+    }
 }

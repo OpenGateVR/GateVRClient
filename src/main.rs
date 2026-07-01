@@ -8,10 +8,12 @@ pub mod network;
 pub mod physics;
 pub mod xr;
 
+use cgmath::Vector3;
 use world::object::Object;
 use std::alloc;
 use cap::Cap;
 
+use crate::renderer::transform::Transform;
 use crate::setup::fonts::load_font_uvs;
 use crate::world::objects::text;
 use crate::world::{object::ObjectType, objects::fbx_parser::parse};
@@ -22,11 +24,19 @@ static ALLOCATOR: Cap<alloc::System> = Cap::new(alloc::System, usize::max_value(
 fn main() {
     let mut world = world::world::create_world();
 
-    let skybox = parse("models/skybox.fbx", (0.0, 0.0, 0.0), (150.0, 150.0, 150.0), (0.0, 0.0, 0.0));
+    let skybox = parse(
+        "models/skybox.fbx",
+        Transform::new(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(150.0, 150.0, 150.0)
+        )
+    );
     let mut skybox_object = Object::create(
         ObjectType::Skybox,
         renderer::vertex::create_vertices_skinned(&skybox.0)
     );
+    world.textures.insert("textures/skybox_2.png".to_string());
     skybox_object.set_default_texture("textures/skybox_2.png");
     skybox_object.set_movable(true);
     world.add_object(skybox_object);
@@ -42,7 +52,10 @@ fn main() {
     world.load_world("worlds/home.json");
 
     //let tablet = cube::create_cube((0.0, 0.0, 0.0), (0.5, 0.4, 0.01));
-    let tablet = parse("models/tablet.fbx", (0.0, 0.0, 0.05), (0.1, 0.5, 0.5), (0.0, 90.0, 0.0));
+    let tablet = parse(
+        "models/tablet.fbx",
+        Transform::new(Vector3::new(0.0, 0.0, 0.05), Vector3::new(0.0, 90.0, 0.0), Vector3::new(0.1, 0.5, 0.5))
+    );
     let mut tablet_object = Object::create(
         ObjectType::TabletMenu,
         renderer::vertex::create_vertices_skinned(&tablet.0)

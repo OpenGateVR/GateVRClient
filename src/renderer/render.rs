@@ -552,8 +552,8 @@ impl Renderer {
                 self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
             } else if self.world.get_object(i).get_object_type() == ObjectType::SkinnedMesh {
                 let skeleton = self.world.get_object(i).get_skeleton();
-                self.bones[i][skeleton["neck"]].rotation.y += 0.01;
-                self.bones[i][skeleton["head"]].rotation.y += 0.01;
+                self.bones[i][skeleton["neck"]].rotation.y = self.player.camera.rotation.y + 1.57079633;
+                //self.bones[i][skeleton["head"]].rotation.y = self.player.camera.rotation.y + 1.57079633;
                 self.update_bones(i);
             }
         }

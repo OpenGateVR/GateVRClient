@@ -612,7 +612,7 @@ fn pack_weights(
 }
 
 // TODO: switch position, scale and rotation to a transform
-pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rotation: (f32, f32, f32)) -> (Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>, HashMap<i64, (usize, transform::Transform, String)>) {
+pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>, HashMap<i64, (usize, transform::Transform, String)>) {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
     let mut reader = BufReader::new(cursor);
@@ -826,19 +826,19 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
 
             for tri in triangles {
                 let mut v = [
-                    mesh.vertices[tri[0]*3] as f32 * scale.0 * transform.scaling.0,
-                    mesh.vertices[tri[0]*3+1] as f32 * scale.2 * transform.scaling.2,
-                    mesh.vertices[tri[0]*3+2] as f32 * scale.1 * transform.scaling.1,
+                    mesh.vertices[tri[0]*3] as f32 * global_transform.scale.x * transform.scaling.0,
+                    mesh.vertices[tri[0]*3+1] as f32 * global_transform.scale.z * transform.scaling.2,
+                    mesh.vertices[tri[0]*3+2] as f32 * global_transform.scale.y * transform.scaling.1,
                 ];
 
-                v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
-                v = rotate_y(v, (rotation.1 + transform.rotation.1) * 0.0174532925);
-                v = rotate_z(v, (rotation.2 + transform.rotation.2) * 0.0174532925);
+                v = rotate_x(v, (global_transform.rotation.x + transform.rotation.0) * 0.0174532925);
+                v = rotate_y(v, (global_transform.rotation.y + transform.rotation.1) * 0.0174532925);
+                v = rotate_z(v, (global_transform.rotation.z + transform.rotation.2) * 0.0174532925);
 
                 // translate
-                v[0] += position.0 + transform.translation.0;
-                v[1] += position.1 + transform.translation.1;
-                v[2] += position.2 + transform.translation.2;
+                v[0] += global_transform.position.x + transform.translation.0;
+                v[1] += global_transform.position.y + transform.translation.1;
+                v[2] += global_transform.position.z + transform.translation.2;
 
                 let (bone_ids, weights) = pack_weights(&vertex_weights[tri[0]], &bone_map);
 
@@ -851,19 +851,19 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
                 mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
 
                 let mut v = [
-                    mesh.vertices[tri[1]*3] as f32 * scale.0 * transform.scaling.0,
-                    mesh.vertices[tri[1]*3+1] as f32 * scale.2 * transform.scaling.2,
-                    mesh.vertices[tri[1]*3+2] as f32 * scale.1 * transform.scaling.1,
+                    mesh.vertices[tri[1]*3] as f32 * global_transform.scale.x * transform.scaling.0,
+                    mesh.vertices[tri[1]*3+1] as f32 * global_transform.scale.z * transform.scaling.2,
+                    mesh.vertices[tri[1]*3+2] as f32 * global_transform.scale.y * transform.scaling.1,
                 ];
 
-                v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
-                v = rotate_y(v, (rotation.1 + transform.rotation.1) * 0.0174532925);
-                v = rotate_z(v, (rotation.2 + transform.rotation.2) * 0.0174532925);
+                v = rotate_x(v, (global_transform.rotation.x + transform.rotation.0) * 0.0174532925);
+                v = rotate_y(v, (global_transform.rotation.y + transform.rotation.1) * 0.0174532925);
+                v = rotate_z(v, (global_transform.rotation.z + transform.rotation.2) * 0.0174532925);
 
                 // translate
-                v[0] += position.0 + transform.translation.0;
-                v[1] += position.1 + transform.translation.1;
-                v[2] += position.2 + transform.translation.2;
+                v[0] += global_transform.position.x + transform.translation.0;
+                v[1] += global_transform.position.y + transform.translation.1;
+                v[2] += global_transform.position.z + transform.translation.2;
 
                 let (bone_ids, weights) = pack_weights(&vertex_weights[tri[1]], &bone_map);
 
@@ -876,19 +876,19 @@ pub fn parse(path: &str, position: (f32, f32, f32), scale: (f32, f32, f32), rota
                 mesh_data[mesh_data_index].2.push([1.0, 1.0, 1.0]);
 
                 let mut v = [
-                    mesh.vertices[tri[2]*3] as f32 * scale.0 * transform.scaling.0,
-                    mesh.vertices[tri[2]*3+1] as f32 * scale.2 * transform.scaling.2,
-                    mesh.vertices[tri[2]*3+2] as f32 * scale.1 * transform.scaling.1,
+                    mesh.vertices[tri[2]*3] as f32 * global_transform.scale.x * transform.scaling.0,
+                    mesh.vertices[tri[2]*3+1] as f32 * global_transform.scale.z * transform.scaling.2,
+                    mesh.vertices[tri[2]*3+2] as f32 * global_transform.scale.y * transform.scaling.1,
                 ];
 
-                v = rotate_x(v, (rotation.0 + transform.rotation.0) * 0.0174532925);
-                v = rotate_y(v, (rotation.1 + transform.rotation.1) * 0.0174532925);
-                v = rotate_z(v, (rotation.2 + transform.rotation.2) * 0.0174532925);
+                v = rotate_x(v, (global_transform.rotation.x + transform.rotation.0) * 0.0174532925);
+                v = rotate_y(v, (global_transform.rotation.y + transform.rotation.1) * 0.0174532925);
+                v = rotate_z(v, (global_transform.rotation.z + transform.rotation.2) * 0.0174532925);
 
                 // translate
-                v[0] += position.0 + transform.translation.0;
-                v[1] += position.1 + transform.translation.1;
-                v[2] += position.2 + transform.translation.2;
+                v[0] += global_transform.position.x + transform.translation.0;
+                v[1] += global_transform.position.y + transform.translation.1;
+                v[2] += global_transform.position.z + transform.translation.2;
 
                 let (bone_ids, weights) = pack_weights(&vertex_weights[tri[2]], &bone_map);
 
