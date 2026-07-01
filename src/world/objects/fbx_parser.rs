@@ -611,7 +611,6 @@ fn pack_weights(
     (ids, weights)
 }
 
-// TODO: switch position, scale and rotation to a transform
 pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>, HashMap<i64, (usize, transform::Transform, String, i64)>) {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
