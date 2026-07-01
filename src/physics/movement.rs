@@ -11,9 +11,8 @@ pub fn get_camera_rotation(player: &Player, mouse: [f32; 2], frame_time: f32) ->
 
 pub fn get_camera_movement(
     player: &mut Player, keys: [bool; 6],
-    forward: Vector3<f32>, frame_time: f32, grounded: bool
+    forward: Vector3<f32>, frame_time: f32
 ) -> Vector3<f32> {
-    
     let mut forward_x = forward[0];
     let mut forward_z = forward[2];
 
@@ -47,9 +46,9 @@ pub fn get_camera_movement(
         walking_force.x -= frame_time * right[0] * player.walking_speed;
         walking_force.z -= frame_time * right[2] * player.walking_speed;
     }
-    if keys[4] && grounded {
-        player.add_force(0.0, frame_time * 1.0, 0.0);
-        println!("{} {} {}", player.forces.x, player.forces.y, player.forces.z)
+    if keys[4] && player.is_grounded {
+        player.add_force(0.0, frame_time * player.jump_force, 0.0);
+        player.is_grounded = false;
     }
     walking_force
 }

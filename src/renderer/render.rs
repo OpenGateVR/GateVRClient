@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
 use crate::interract::raycast::raycast_grab;
+use crate::physics::gravity::apply_gravity;
 use crate::physics::movement::{get_camera_movement, get_camera_rotation};
 use crate::renderer::texture_object::TextureObject;
 use crate::renderer::transform::Transform;
@@ -476,12 +477,12 @@ impl Renderer {
             self.player.camera.rotation.y.sin() * self.player.camera.rotation.x.cos(),
         ).normalize();
 
-        let grounded = false;
-
         let updated_camera_position = get_camera_movement(
-            &mut self.player, keys, forward, frame_time, grounded
+            &mut self.player, keys, forward, frame_time
         );
         self.player.camera.position += updated_camera_position;
+
+        apply_gravity(&mut self.player, frame_time);
 
         if menu_tablet_state == 2 {
             for i in 0..self.world.get_objects().len() {

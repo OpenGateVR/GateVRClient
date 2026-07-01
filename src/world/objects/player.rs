@@ -7,7 +7,9 @@ pub struct Player {
     pub camera: Transform,
     pub forces: Vector3<f32>,
 
-    pub walking_speed: f32
+    pub is_grounded: bool,
+    pub walking_speed: f32,
+    pub jump_force: f32
 }
 impl Player {
     pub fn new() -> Self {
@@ -16,7 +18,9 @@ impl Player {
             camera: Transform::zero(),
             forces: Vector3::new(0.0, 0.0, 0.0),
 
-            walking_speed: 0.4
+            is_grounded: true,
+            walking_speed: 0.4,
+            jump_force: 0.6
         }
     }
 
