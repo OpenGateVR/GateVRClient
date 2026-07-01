@@ -28,6 +28,7 @@ Custom engine? Of course! :D
 - [ ] Mirror system
 - [ ] Video system
 - [ ] Portal system
+- [ ] Dynamic UI system (non hardcoded)
 
 # Todo List Server:
 - [x] Player location data
