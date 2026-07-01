@@ -512,7 +512,7 @@ fn get_transform(node: &Node) -> Option<Transform> {
                                     };
                                 }
                             }
-                            
+
                             match prop_name {
                                 "Lcl Translation" => translation = (nums[0] / 100.0, nums[1] / 100.0, nums[2] / 100.0),
                                 "Lcl Rotation" => rotation = (nums[0], nums[1], nums[2]),
@@ -549,7 +549,7 @@ fn get_transform(node: &Node) -> Option<Transform> {
             scaling,
             name,
             id,
-            parent: 0,
+            parent: -1,
             object
         });
     }
@@ -582,7 +582,7 @@ fn parse_materials(node: &Node) -> HashMap<i64, Material> {
 
 fn pack_weights(
     influences: &[(i64, f32)],
-    bone_map: &HashMap<i64, (usize, transform::Transform, String)>,
+    bone_map: &HashMap<i64, (usize, transform::Transform, String, i64)>,
 ) -> ([u32; 4], [f32; 4]) {
 
     let mut ids = [0u32; 4];
@@ -612,7 +612,7 @@ fn pack_weights(
 }
 
 // TODO: switch position, scale and rotation to a transform
-pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>, HashMap<i64, (usize, transform::Transform, String)>) {
+pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<SkinnedVertex>, Vec<[i8; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, String)>, HashMap<i64, (usize, transform::Transform, String, i64)>) {
     let data = Assets::get(path).expect("Failed to get asset").data;
     let cursor = Cursor::new(data);
     let mut reader = BufReader::new(cursor);
@@ -707,17 +707,6 @@ pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<Sk
         }
     }
 
-    let bones: Vec<_> = transforms.values().filter(|t| t.object == ObjectType::Bone).collect();
-    for (index, bone) in bones.iter().enumerate() {
-        bone_map.insert(bone.id, (index, 
-            transform::Transform{
-                position: Vector3::new( bone.translation.0, bone.translation.1, bone.translation.2 ),
-                rotation: Vector3::new( bone.rotation.0, bone.rotation.1, bone.rotation.2 ),
-                scale: Vector3::new( bone.scaling.0, bone.scaling.1, bone.scaling.2 ),
-            }, bone.name.clone()
-        ));
-    }
-
     for (geom, cluster_ids) in &geometry_clusters {
         println!(
             "Geometry {} has {} clusters",
@@ -737,6 +726,23 @@ pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<Sk
         }
     }
 
+    let bones: Vec<_> = transforms.values().filter(|t| t.object == ObjectType::Bone).collect();
+    for (index, bone) in bones.iter().enumerate() {
+        let mut parent_bone_index = -1;
+        for (parent_index, parent_bone) in bones.iter().enumerate() {
+            if parent_bone.id == bone.parent {
+                parent_bone_index = parent_index as i64;
+            }
+        }
+        bone_map.insert(bone.id, (index,
+            transform::Transform{
+                position: Vector3::new( bone.translation.0, bone.translation.1, bone.translation.2 ),
+                rotation: Vector3::new( bone.rotation.0, bone.rotation.1, bone.rotation.2 ),
+                scale: Vector3::new( bone.scaling.0, bone.scaling.1, bone.scaling.2 ),
+            }, bone.name.clone(), parent_bone_index
+        ));
+    }
+
     let mut selected_material = "default";
 
     for node in &file.children {
@@ -748,7 +754,7 @@ pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<Sk
                 scaling: (0.0, 0.0, 0.0),
                 name: "Unknown".to_string(),
                 id: 0,
-                parent: 0,
+                parent: -1,
                 object: ObjectType::Bone
             };
             let mut model_id = None;
@@ -844,7 +850,7 @@ pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<Sk
 
                 mesh_data[mesh_data_index].0.push(SkinnedVertex{ position: v, bone_ids, weights});
                 mesh_data[mesh_data_index].3.push([
-                    mesh.uv[tri[3] * 2] as f32, 
+                    mesh.uv[tri[3] * 2] as f32,
                     1.0 - mesh.uv[tri[3] * 2 + 1] as f32
                 ]);
                 mesh_data[mesh_data_index].1.push([0, 1, 0]);
@@ -894,7 +900,7 @@ pub fn parse(path: &str, global_transform: transform::Transform) -> (Vec<(Vec<Sk
 
                 mesh_data[mesh_data_index].0.push(SkinnedVertex { position: v, bone_ids, weights });
                 mesh_data[mesh_data_index].3.push([
-                    mesh.uv[tri[5] * 2] as f32, 
+                    mesh.uv[tri[5] * 2] as f32,
                     1.0 - mesh.uv[tri[5] * 2 + 1] as f32
                 ]);
                 mesh_data[mesh_data_index].1.push([0, 1, 0]);

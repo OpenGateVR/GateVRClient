@@ -44,7 +44,7 @@ pub struct Renderer {
     uniform_bind_groups: Vec<Vec<wgpu::BindGroup>>,
     num_vertices: Vec<Vec<u32>>,
     bone_buffers: Vec<wgpu::Buffer>,
-    bones: Vec<Vec<transform::Transform>>,
+    bones: Vec<Vec<(transform::Transform, i64)>>,
     shader_type: Vec<ShaderType>,
 
     uniform_bind_group_layout: wgpu::BindGroupLayout,
@@ -552,7 +552,7 @@ impl Renderer {
                 self.init.queue.write_buffer(&self.model_uniform_buffers[i], 64, bytemuck::cast_slice(normal_ref));
             } else if self.world.get_object(i).get_object_type() == ObjectType::SkinnedMesh {
                 let skeleton = self.world.get_object(i).get_skeleton();
-                self.bones[i][skeleton["neck"]].rotation.y = self.player.camera.rotation.y + 1.57079633;
+                self.bones[i][skeleton["neck"]].0.rotation.y = self.player.camera.rotation.y + 1.57079633;
                 //self.bones[i][skeleton["head"]].rotation.y = self.player.camera.rotation.y + 1.57079633;
                 self.update_bones(i);
             }
@@ -660,10 +660,24 @@ impl Renderer {
     pub fn update_bones(&mut self, object_index: usize) {
         let mut bones: Vec<[[f32; 4]; 4]> = Vec::new();
         for bone in self.bones[object_index].iter() {
+            let mut position_added = bone.0.position;
+            let mut rotation_added = bone.0.rotation;
+            if bone.1 != -1 {
+                let mut current_parent = bone.1;
+                for _ in 0..self.bones[object_index].len() {
+                    if current_parent == -1 {
+                        break;
+                    }
+                    let current_parent_bone = self.bones[object_index][current_parent as usize];
+                    position_added += current_parent_bone.0.position;
+                    rotation_added += current_parent_bone.0.rotation;
+                    current_parent = current_parent_bone.1;
+                }
+            }
             bones.push(transforms::create_transforms(
-                bone.position.into(),
-                bone.rotation.into(),
-                bone.scale.into()
+                position_added.into(),
+                rotation_added.into(),
+                bone.0.scale.into()
             ).into());
         }
         self.init.queue.write_buffer(&self.bone_buffers[object_index], 0, bytemuck::cast_slice(&bones));
@@ -693,9 +707,9 @@ impl Renderer {
 
             for bone in bone_transforms {
                 bones.push(transforms::create_transforms(
-                    bone.position.into(),
-                    bone.rotation.into(),
-                    bone.scale.into()
+                    bone.0.position.into(),
+                    bone.0.rotation.into(),
+                    bone.0.scale.into()
                 ).into());
             }
 

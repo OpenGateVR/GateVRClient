@@ -119,9 +119,9 @@ impl World {
                         object.set_skeleton(skeleton);
                     }
                     if model_parsed.1.len() > 0 {
-                        object.set_bones(model_parsed.1, 
-                            Vector3::new(0.0, 0.0, 0.0), 
-                            Vector3::new(0.0, 0.0, 0.0), 
+                        object.set_bones(model_parsed.1,
+                            Vector3::new(0.0, 0.0, 0.0),
+                            Vector3::new(0.0, 0.0, 0.0),
                             Vector3::new(1.0, 1.0, 1.0)
                         );
                         object.set_object_type(ObjectType::SkinnedMesh);
