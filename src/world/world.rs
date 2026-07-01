@@ -1,15 +1,17 @@
+use std::collections::HashSet;
+
 use crate::{renderer::vertex::create_vertices_skinned, world::{material::Material, object::{Object, ObjectType}, objects::fbx_parser::parse, scene::load_scene}};
 
 pub struct World {
     pub objects: Vec<Object>,
-    pub textures: Vec<String>,
+    pub textures: HashSet<String>,
     cameras: Vec<Object>
 }
 impl World {
     pub fn new() -> Self{
         Self {
             objects: Vec::new(),
-            textures: Vec::new(),
+            textures: HashSet::new(),
             cameras: Vec::new()
         }
     }
@@ -36,7 +38,7 @@ impl World {
         &self.cameras
     }
 
-    pub fn get_textures(&self) -> &Vec<String> {
+    pub fn get_textures(&self) -> &HashSet<String> {
         &self.textures
     }
 
@@ -64,10 +66,14 @@ impl World {
                     }
                     let material_name = format!("material{}", static_world_object.get_materials().len());
                     let mut object_material = Material::from_texture(&scene_object.texture);
-                    self.textures.push(scene_object.texture);
+                    self.textures.insert(scene_object.texture);
                     if scene_object.displace != "".to_string() {
                         object_material.set_displacement(&scene_object.displace);
-                        self.textures.push(scene_object.displace);
+                        self.textures.insert(scene_object.displace);
+                    }
+                    for material in scene_object.materials {
+                        static_world_object.add_material(Material::from_texture(&material.texture), material.name);
+                        self.textures.insert(material.texture);
                     }
                     static_world_object.add_material(object_material, material_name);
                     static_world_object.add_meshes(vertices);

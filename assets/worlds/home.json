@@ -12,6 +12,15 @@
             "is_static": true, "reference": "models/table.fbx",
             "transform": {"position": [0, 2, 0], "scale": [1.0, 1.0, 2.0]},
             "texture": "textures/table.png"
+        },
+        {
+            "is_static": true, "reference": "models/fallback.fbx",
+            "transform": {"position": [4, 1.9, 0], "scale": [0.017, 0.017, 0.017]},
+            "materials": [
+                {"name": "BodyMaterial", "texture": "textures/CG_Body_Base_color.png"},
+                {"name": "HairsMaterial", "texture": "textures/CG_Hairs_Base_color.png"},
+                {"name": "DressMaterial", "texture": "textures/CG_Dress_Base_color.png"}
+            ]
         }
     ]
 }
