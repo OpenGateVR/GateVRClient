@@ -18,10 +18,10 @@ pub enum ObjectType {
     TabletMenuButton
 }
 
-fn new_bone_vec(amount: usize) -> Vec<Transform> {
+fn new_bone_vec(amount: usize) -> Vec<(Transform, i64)> {
     let mut bones = Vec::new();
     for _ in 0..amount {
-        bones.push(Transform::zero());
+        bones.push((Transform::zero(), -1));
     }
     bones
 }
@@ -33,7 +33,7 @@ pub struct Object {
     transform: Transform,
     vertices: Vec<(Vec<Vertex>, String)>,
     materials: HashMap<String, Material>,
-    bones: Vec<Transform>,
+    bones: Vec<(Transform, i64)>,
     skeleton: HashMap<String, usize>,
     movable: bool,
     tag: String
@@ -92,14 +92,14 @@ impl Object {
         }
     }
 
-    pub fn set_bones(&mut self, bones: HashMap<i64, (usize, Transform, String)>,
+    pub fn set_bones(&mut self, bones: HashMap<i64, (usize, Transform, String, i64)>,
         position: Vector3<f32>, rotation: Vector3<f32>, scale: Vector3<f32>
     ) {
-        let mut bones_converted: Vec<Transform> = new_bone_vec(bones.len());
+        let mut bones_converted: Vec<(Transform, i64)> = new_bone_vec(bones.len());
         for bone in bones {
             if bone.1.0 > bones_converted.len() { continue; }
             //println!("{} : {}", bone.1.0, bone.1.2);
-            bones_converted[bone.1.0] = Transform { position: position, rotation: rotation, scale: scale };
+            bones_converted[bone.1.0] = (Transform { position: position, rotation: rotation, scale: scale }, bone.1.3);
         }
         self.bones = bones_converted;
     }
@@ -124,7 +124,7 @@ impl Object {
         self.object_type
     }
 
-    pub fn get_bones(&self) -> &Vec<Transform> {
+    pub fn get_bones(&self) -> &Vec<(Transform, i64)> {
         &self.bones
     }
     pub fn get_skeleton(&self) -> &HashMap<String, usize> {

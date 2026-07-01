@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use cgmath::Vector3;
 
-use crate::{renderer::vertex::create_vertices_skinned, world::{material::Material, object::{Object, ObjectType}, objects::fbx_parser::parse, scene::load_scene}};
+use crate::{renderer::{transform::Transform, vertex::create_vertices_skinned}, world::{material::Material, object::{Object, ObjectType}, objects::fbx_parser::parse, scene::load_scene}};
 
 pub struct World {
     pub objects: Vec<Object>,
@@ -55,9 +55,11 @@ impl World {
             for scene_object in scene.objects {
                 if scene_object.is_static {
                     let model_parsed = parse(&scene_object.reference,
-                        (scene_object.transform.position[0], scene_object.transform.position[1], scene_object.transform.position[2]),
-                        (scene_object.transform.scale[0], scene_object.transform.scale[1], scene_object.transform.scale[2]),
-                        (scene_object.transform.rotation[0], scene_object.transform.rotation[1], scene_object.transform.rotation[2])
+                        Transform::new(
+                            Vector3::new(scene_object.transform.position[0], scene_object.transform.position[1], scene_object.transform.position[2]),
+                            Vector3::new(scene_object.transform.rotation[0], scene_object.transform.rotation[1], scene_object.transform.rotation[2]),
+                            Vector3::new(scene_object.transform.scale[0], scene_object.transform.scale[1], scene_object.transform.scale[2])
+                        )
                     );
 
                     let mut vertices = create_vertices_skinned(&model_parsed.0);
@@ -80,9 +82,7 @@ impl World {
                     static_world_object.add_material(object_material, material_name);
                     static_world_object.add_meshes(vertices);
                 } else {
-                    let model_parsed = parse(&scene_object.reference,
-                        (0.0, 0.0, 0.0), (1.0, 1.0, 1.0), (0.0, 0.0, 0.0)
-                    );
+                    let model_parsed = parse(&scene_object.reference,Transform::zero());
 
                     let mut object = Object::create(
                         ObjectType::Mesh,
@@ -119,9 +119,9 @@ impl World {
                         object.set_skeleton(skeleton);
                     }
                     if model_parsed.1.len() > 0 {
-                        object.set_bones(model_parsed.1, 
-                            Vector3::new(0.0, 0.0, 0.0), 
-                            Vector3::new(0.0, 0.0, 0.0), 
+                        object.set_bones(model_parsed.1,
+                            Vector3::new(0.0, 0.0, 0.0),
+                            Vector3::new(0.0, 0.0, 0.0),
                             Vector3::new(1.0, 1.0, 1.0)
                         );
                         object.set_object_type(ObjectType::SkinnedMesh);
