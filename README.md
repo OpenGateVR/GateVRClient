@@ -5,6 +5,12 @@ Custom server architecture? Of course,
 Custom packet system? Of course,  
 Custom engine? Of course! :D  
 
+# Requirements
+- 512MB Storage
+- 256MB Ram
+- 1 CPU core
+- GPU (Optional)
+
 # Todo List Client:
 - [x] Basic Rendering
 - [x] Text Rendering
