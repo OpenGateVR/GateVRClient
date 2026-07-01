@@ -22,6 +22,9 @@ pub struct Object {
     #[serde(default = "default_texture")]
     pub texture: String,
 
+    #[serde(default = "default_materials")]
+    pub materials: Vec<Material>,
+
     #[serde(default = "default_displace")]
     pub displace: String,
 
@@ -32,8 +35,18 @@ fn default_texture() -> String {
     "textures/missing.png".to_string()
 }
 
+fn default_materials() -> Vec<Material> {
+    Vec::new()
+}
+
 fn default_displace() -> String {
     "".to_string()
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Material {
+    pub name: String,
+    pub texture: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
