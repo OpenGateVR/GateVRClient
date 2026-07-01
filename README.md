@@ -22,7 +22,7 @@ Custom engine? Of course! :D
 - [x] World data file loader
 - [x] World parser
 - [x] Dynamic world loading and compiling
-- [x] Dynamic fond loading
+- [x] Dynamic font loading
 - [ ] World loading from Github repo
 - [ ] Unity exporting plugin (for making worlds and avatars)
 - [ ] Mirror system
