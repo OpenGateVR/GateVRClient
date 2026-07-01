@@ -67,6 +67,7 @@ impl World {
                     self.textures.push(scene_object.texture);
                     if scene_object.displace != "".to_string() {
                         object_material.set_displacement(&scene_object.displace);
+                        self.textures.push(scene_object.displace);
                     }
                     static_world_object.add_material(object_material, material_name);
                     static_world_object.add_meshes(vertices);
